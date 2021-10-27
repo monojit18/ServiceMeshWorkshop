@@ -182,6 +182,8 @@
 
           - ###### Install Viz dashboard
 
+          - ###### Install Jaeger for Distributed Tracing
+
           - ###### Observability
 
             - ###### View Basic Metrics
