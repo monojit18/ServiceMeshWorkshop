@@ -1,0 +1,84 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: primary-gateway
+spec:
+  selector:
+    istio: ingressgateway # use istio default controller
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: primary-virtual-service
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - primary-gateway
+  http:
+  - match:
+    - uri:
+        exact: /podinfo
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        host: podinfo   
+        subset: v1     
+        port:
+          number: 9898 
+      weight: 10        
+    - destination:
+        host: podinfo  
+        subset: v2 
+        port:
+          number: 9898 
+      weight: 90
+  - match:  
+    - uri:
+        exact: /hello
+    route:
+    - destination:
+        host: helloworld
+        subset: v1
+        port:
+          number: 5000   
+      weight: 100
+    mirror:
+      host: hellov2.wkshpdev.com
+      port:
+        number: 80
+    mirrorPercentage:
+      value: 50
+  - match:
+    - uri:
+        exact: /product
+    rewrite:
+      uri: /productpage 
+    route:
+    - destination:
+        host: productpage
+        port:
+          number: 9080
+  - match:  
+    - uri:
+        prefix: /static
+    - uri:
+        exact: /login
+    - uri:
+        exact: /logout
+    - uri:
+        prefix: /api/v1/products
+    route:
+    - destination:
+        host: productpage
+        port:
+          number: 9080
+    

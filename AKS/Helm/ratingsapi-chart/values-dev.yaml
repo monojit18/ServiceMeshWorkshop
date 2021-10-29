@@ -1,0 +1,57 @@
+deployment:
+  name: ratingsapi-deploy
+  namespace: aks-workshop-dev
+  labels:
+    app: ratingsapi-deploy
+  selectorLabels:
+    app: ratingsapi-pod    
+    version: v1    
+  replicas: 2
+  strategyType: RollingUpdate
+  maxSurge: 1
+  maxUnavailable: 1
+  nodeSelector:
+    agentpool: agentpool
+  containers:
+  - name: ratingsapi-app
+    image: akswkshpacr.azurecr.io/ratings-api:v1.0.0
+    imagePullPolicy: IfNotPresent
+    readinessPort: 3000
+    readinessPath: /healthz
+    livenessPort: 3000
+    livenessPath: /healthz
+    memoryRequest: "64Mi"
+    cpuRequest: "100m"
+    memoryLimit: "256Mi"
+    cpuLimit: "200m"
+    containerPorts: [3000]    
+    env:          
+    - name: MONGODB_URI
+      valueKey: MONGOCONNECTION
+      valueSecret: aks-workshop-mongo-secret
+service:
+  name: ratingsapi-service
+  namespace: aks-workshop-dev
+  selector:
+    app: ratingsapi-pod    
+  type: ClusterIP
+  ports:
+  - port: 80
+    name: http
+    targetPort: 3000
+hpa:
+  name: ratingsapi-hpa
+  namespace: aks-workshop-dev
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ratingsapi-deploy
+  minReplicas: 1
+  maxReplicas: 50
+  metrics:
+  - name: cpu
+    targetType: Utilization        
+    averageUtilization: 75
+    
+    
+    

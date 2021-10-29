@@ -1,0 +1,101 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-green
+  namespace: test
+data:
+ nginx.conf: |-
+    events {}
+    http {
+        server {
+          listen 8080;
+            location / {
+                proxy_pass http://podinfo-green:9898;
+            }
+        }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-green
+  namespace: test
+  labels:
+    app: frontend-green
+spec:
+  selector:
+    matchLabels:
+      app: frontend-green
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        linkerd.io/inject: enabled
+      labels:
+        app: frontend-green
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          volumeMounts:
+            - name: cfg
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+      volumes:
+        - name: cfg
+          configMap:
+            name: frontend-green
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-green
+  namespace: test
+spec:
+  ports:
+  - name: service
+    port: 8080
+  selector:
+    app: frontend-green
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: podinfo-green
+  namespace: test
+  labels:
+    app: podinfo-green
+spec:
+  selector:
+    matchLabels:
+      app: podinfo-green
+  template:
+    metadata:
+      annotations:
+        linkerd.io/inject: enabled
+      labels:
+        app: podinfo-green
+    spec:
+      containers:
+      - name: podinfod
+        image: quay.io/stefanprodan/podinfo:1.7.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9898
+        command:
+        - ./podinfo
+        - --port=9898
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: podinfo-green
+  namespace: test
+  labels:
+    app: podinfo-green
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9898
+  selector:
+    app: podinfo-green

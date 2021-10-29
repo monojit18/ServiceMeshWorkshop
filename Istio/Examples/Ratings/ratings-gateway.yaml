@@ -1,0 +1,36 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: ratingsweb-gateway
+  namespace: aks-workshop-dev
+spec:
+  selector:
+    istio: ingressgateway # use istio default controller
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: ratingsweb
+  namespace: aks-workshop-dev
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - ratingsweb-gateway
+  http:
+  - match:
+    - uri:
+        regex: /?(.*)  
+    route:
+    - destination:
+        host: ratingsweb-service
+        port:
+          number: 80  
+    

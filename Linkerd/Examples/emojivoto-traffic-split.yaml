@@ -1,0 +1,12 @@
+apiVersion: split.smi-spec.io/v1alpha1
+kind: TrafficSplit
+metadata:
+  name: emojivoto-split
+  namespace: emojivoto
+spec:  
+  service: web-svc
+  backends:
+  - service: web-svc
+    weight: 900m
+  - service: web-svc-v12
+    weight: 100m

@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: podinfo-green
+  labels:
+    app: podinfo-green
+spec:
+  selector:
+    matchLabels:
+      app: podinfo
+      version: v2
+  template:
+    metadata:
+      annotations:
+        linkerd.io/inject: enabled
+      labels:
+        app: podinfo
+        version: v2
+    spec:
+      containers:
+      - name: podinfod
+        image: quay.io/stefanprodan/podinfo:1.7.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9898
+        command:
+        - ./podinfo
+        - --port=9898

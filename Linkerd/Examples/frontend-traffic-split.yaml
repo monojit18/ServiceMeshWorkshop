@@ -1,0 +1,12 @@
+apiVersion: split.smi-spec.io/v1alpha1
+kind: TrafficSplit
+metadata:
+  name: frontend-split
+  namespace: test
+spec:  
+  service: frontend-blue
+  backends:
+  - service: frontend-blue    
+    weight: 500m
+  - service: frontend-green
+    weight: 500m
