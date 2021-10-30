@@ -10,218 +10,48 @@
 
 - ### K8s High Level Architecture
 
+  ![K8s-HL](./Assets/K8s-HL.png)
+
+  
+
 - ### AKS - High Level Architecture
+
+  ![K8s-HL](./Assets/aks-HL.png)
+
+  
 
 - ### Understand ServiceMesh - *What it is?*
 
+  ![istio-arch](./Assets/service-mesh.png)
+
   - #### Features
+
+    - Observability
+    - Ingress Routing
+    - Traffic Management
+      - Ingress Routing
+      - Traffic Splitting
+      - Distruibuted Tracing
+      - Service Mirroring
+      - Circuit Breaking
 
   - #### Benefits
 
-- ### Let us Delve into it
+    - Blue/Green Deployment
 
-  - #### Clone Workshop repo
+    - Fault Injection
 
-  - #### Plan Workshop Tasks
+    - Multi Cluster Connectivity
 
-  - #### Create Primary AKS Cluster
+    - A/B Testing
 
-    - ##### Login to Azure
-
-    - ##### Create Primary Resource Group
-
-    - ##### Create Service Principal
-
-    - ##### Create Network for AKS
-
-      - ###### Create Virtual Network
-
-      - ###### Create Subnet for AKS cluster
-
-    - ##### Assign Roles to Service Principal
-
-    - ##### Create Azure Container Registry (ACR)
-
-    - ##### Create Primary AKS cluster
-
-    - #### Cluster Configuration
-
-    - ### Service Mesh
-
-      - #### Istio
-
-        - ##### Download Istio
-
-        - ##### Install Istio CLI - istioctl
-
-        - ##### Configure Istio in Primary Cluster
-
-          - ###### Install Istio onto Primary Cluster
-
-          - ###### Inject Istio into Namespaces
-
-          - ###### Install Kiali dashboard
-
-          - ###### Observability
-
-            - ###### View Basic Metrics
-
-            - ###### View API Dependencies
-
-          - ###### Traffic Splitting
-
-          - ###### Fault Injection
-
-          - ###### Distributed Tracing
-
-          - ###### Service Mirroring
-
-          - ###### Circuit Breaking
-
-      - #### Linkerd
-
-        - ##### Download Linkerd
-
-        - ##### Install Linkerd CLI - linkerdctl
-
-        - ##### Configure Linkerd in Primary Cluster
-
-          - ###### Install Linkerd onto Primary Cluster
-
-          - ###### Inject Linkerd into Namespaces
-
-          - ###### Install Viz dashboard
-
-          - ###### Install Jaeger for Distributed Tracing
-
-          - ###### Observability
-
-            - ###### View Basic Metrics
-
-            - ###### View Detailed Metrics
-
-              - ###### Grafana
-
-            - ###### View API Dependencies
-
-          - ###### Traffic Splitting
-
-          - ###### Fault Injection
-
-          - ###### Distributed Tracing
-
-          - ###### Service Mirroring
-
-      - #### API Mesh
-
-        - ##### Azure API Managemt Service
-
-          - ###### What it is
-
-          - ###### How it Integrates with AKS or K8s
-
-            - ###### Outside the Cluster
-
-            - ###### Inside the Cluster 
-
-            - ###### End to End view
-
-            - ###### Application Gateway - L7 Load Balancer
-
-          - ##### Self Hosted APIM
-
-            - ###### Features/Benefits
-
-            - ###### Deploy APIM
-
-            - ###### Enable Application Insights
-
-            - ###### Add Authentication
-
-            - ###### Create Self Hosted Gateway
-
-            - ###### Deploy APIM Container on AKS cluster
-
-          - ##### Configure APIs behind APIM
-
-            - ###### Ratings Web
-
-            - ###### Ratings Api
-
-            - ###### Expose APIs
-
-              - ###### Developer Portal
-
-          - ##### Test Integration Flow
-
-          - ##### View API metrics
-
-            - ###### Application Insights
-
-          - ##### Add API Policies
-
-            - ###### Restrict API access
-
-              - ###### RBAC
-
-          - ##### How it is diff from Service Mesh approach
-
-            - ###### What is Additional
-
-            - ###### What is missing
-
-        - ##### Sumamry of all Appriches
-
-          - ###### Pros & Cons
-
-        - ##### What Next
-
-          - ###### Multi Cluster Connectivity
-
-          - ###### Elastic Scaling
+  
 
   - ## HOL
 
-    - ### K8s High Level Architecture
+    ![workflow](./Assets/workflow.png)
 
-      ![K8s-HL](./Assets/K8s-HL.png)
-
-      
-
-    - **AKS - High Level Architecture**
-
-      ![K8s-HL](./Assets/aks-HL.png)
-
-      
-
-    - ### Understand ServiceMesh - *What it is?*
-
-      ![istio-arch](./Assets/service-mesh.png)
-
-      
-
-      - #### Features
-
-        - Observability
-        - Ingress Routing
-        - Traffic Management
-          - Ingress Routing
-          - Traffic Splitting
-          - Distruibuted Tracing
-          - Service Mirroring
-          - Circuit Breaking
-
-      - #### Benefits
-
-        - Blue/Green Deployment
-
-        - Fault Injection
-
-        - Multi Cluster Connectivity
-
-        - A/B Testing
-
-          
+    
 
     - ### Let us Delve into it
 
@@ -240,16 +70,18 @@
           subscriptionId=""
           location="eastus"
           clusterName="primary-mesh-cluster"
+          version="1.20.9"
           aksResourceGroup="primary-workshop-rg"
           acrName="srvmeshacr"
           spDisplayName="http://service-mesh-aks-cluster-sp"
           aksVnetName="primary-cluster-vnet"
-          aksVnetPrefix="30.0.0.0/21"
+          aksVnetPrefix="31.0.0.0/21"
           aksVnetId=
           aksSubnetName="primary-cluster-subnet"
-          aksSubnetPrefix="30.0.0.0/24"
+          aksSubnetPrefix="31.0.0.0/24"
           aksSubnetId=
-          aksServicePrefix="30.0.1.0/24"
+          aksServicePrefix="31.0.1.0/24"
+          dnsServiceIP="31.0.1.10"
           sysNodeSize="Standard_DS2_v2"
           sysNodeCount=3
           maxSysPods=30
@@ -280,9 +112,9 @@
           #Create Resource Group for AKS workloads
           az group create -n $aksResourceGroup -l $location
           ```
-        
-        - Service Principal
 
+        - Service Principal
+        
           ```bash
           #Create Service Principal
           az ad sp create-for-rbac --skip-assignment -n $spDisplayName
@@ -346,6 +178,7 @@
         --resource-group $aksResourceGroup \
         --kubernetes-version $version --location $location \
         --vnet-subnet-id "$aksSubnetId" --enable-addons $addons \
+        --service-cidr $aksServicePrefix --dns-service-ip $dnsServiceIP \
         --node-vm-size $sysNodeSize \
         --node-count $sysNodeCount --max-pods $maxSysPods \
         --service-principal $spAppId \
@@ -353,7 +186,7 @@
         --network-plugin $networkPlugin --network-policy $networkPolicy \
         --nodepool-name $sysNodePoolName --vm-set-type $vmSetType \
         --generate-ssh-keys \
-        --disable-aad \
+        --disable-rbac \
         --attach-acr $acrName
         ```
         
@@ -376,9 +209,9 @@
         
 
         
-      
+
         - ##### Configure AKS Cluster - Primary
-      
+
           ```bash
           #Set Env Variable for Primary Cluster
           #This helps to switch context easily between multiple clusters
@@ -391,8 +224,6 @@
           #Switch context between multiple clusters
           kubectl config use-context <context>
           ```
-      
-          
 
         - ##### Set CLI Variables for Istio
 
@@ -403,9 +234,9 @@
           helmPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/AKS/Helm"
           istioPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/Istio"
           ```
-      
+
         - ##### Download Istio
-      
+
           ```bash
           #Download Istio binary
           curl -L https://istio.io/downloadIstio | sh -
@@ -414,31 +245,31 @@
           #Add the istioctl client to your path (Linux or macOS):
           export PATH=$PWD/bin:$PATH
           ```
-      
+
         - ##### Check Cluster Health
-      
+
           ```bash
           kubectl get no --context=$CTX_CLUSTER1
           kubectl get ns --context=$CTX_CLUSTER1
           ```
           
         - ##### Create Namespaces
-      
+
           ```bash
           #Create namespaces for Istio
           kubectl create namespace istio-system --context $CTX_CLUSTER1
           kubectl create namespace primary --context $CTX_CLUSTER1
           ```
-      
+
         - ##### Install Istio CLI
-      
+
           ```bash
           #Select Default Istio Profile settings
           istioctl install --context=$CTX_CLUSTER1 --set profile=default -y
           ```
-      
+
         - ##### Configure Istio in Primary Cluster
-      
+
           - ###### Inject Istio into Namespaces
 
             ```bash
@@ -446,9 +277,9 @@
             #This ensures sidecar container to be added for every dpeloyment in this namespace
             kubectl label namespace primary istio-injection=enabled --context=$CTX_CLUSTER1
             ```
-      
+
           - ##### Install Addons
-      
+
             ```bash
             #Install Istio Addons
             #This primarily installs all dependencies for observability by Istio viz. Grafana, Kiali dashboard etc.
@@ -459,77 +290,222 @@
             
             #Launch Kiali as background process
             istioctl dashboard kiali&
+            
+            #Might need to Press CTRL+C to allow the job to continue in teh background
+            #Bring job to foreground - fg [<job-number>]
+            
+            #Check Deployments within istio-system
+            #Istio Ingress gateway with public IP
+            kubectl get svc -A
             ```
-      
+
+          - ##### Deploy BookInfo App
+
+            ```bash
+            #Install BookInfo app onto the cluster
+            kubectl apply -f $istioPath/Examples/BookInfo/bookinfo.yaml -n primary
+            
+            #Check Deployed Components
+            kubectl get svc -n primary
+            kubectl get pods -n primary
+            
+            #Quick check to test BookInfo app
+            podName=$(kubectl get pod -l app=ratings -n primary -o jsonpath='{.items[0].metadata.name}')
+            kubectl exec $podName -n primary -c ratings -- curl -sS productpage:9080/productpage | grep -o "<title>.*</title>"
+            ```
+
+            ```bash
+            #Need a Gateway to expose the service outside
+            #Check Routing definitions
+            kubectl apply -f $istioPath/Examples/Gateways/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
+            
+            #Get GATEWAY_URL
+            kubectl get svc istio-ingressgateway -n istio-system
+            export INGRESS_HOST=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+            export INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].port}')
+            export SECURE_INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="https")].port}')
+            
+            #Call services using GATEWAY_URL
+            export GATEWAY_URL=$INGRESS_HOST:$INGRESS_PORT
+            echo "$GATEWAY_URL"
+            
+            #Try the follwoing URL in the Browser or do a cUrl
+            curl http://$GATEWAY_URL/product
+            ```
+
           - ##### Observability
-      
-            - ###### View Basic Metrics
-      
-              ![istio-metrics-graph](./Assets/istio-metrics-graph.png)
-      
-              ![istio-metrics-inbound](./Assets/istio-metrics-inbound.png)
-      
-              ![istio-metrics-inbound](./Assets/istio-metrics-oob.png)
-            
-            
-            
-            - ###### View API Dependencies
-            
-              ![istio-metrics-trace1](./Assets/istio-metrics-trace1.png)
-            
-              ![istio-metrics-trace1](./Assets/istio-metrics-trace2.png)
-            
-              ###### 
-            
-      
+
+            ![istio-metrics-graph](./Assets/istio-metrics-graph.png)
+
+            ![istio-metrics-inbound](./Assets/istio-metrics-inbound.png)
+
+            ![istio-metrics-inbound](./Assets/istio-metrics-oob.png)
+
+            ###### 
+
+        - ##### Deploy more apps (Optional)
+
+          ```bash
+          #Deploy backend DB as container
+          kubectl create ns db --context=$CTX_CLUSTER1
+          
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm search repo bitnami
+          
+          helm install ratingsdb bitnami/mongodb:4.4.10 -n db \
+          --set auth.username=ratingsuser,auth.password=ratingspwd,auth.database=ratingsdb \
+          --set controller.nodeSelector.agentpool=agentpool \
+          --set controller.defaultBackend.nodeSelector.agentpool=agentpool
+          
+          #RatingsApi - Ratings API backend 
+          #Clone/Fork/Download Souerce code
+          https://github.com/monojit18/mslearn-aks-workshop-ratings-api.git
+          
+          #CD to the director where Dockerfile exists
+          #This docker build but performed in a Cloud Agent(VM) by ACR
+          az acr build -t $acrName.azurecr.io/ratings-api:v1.0.0 -r $acrName .
+          
+          kubectl create secret generic service-mesh-mongo-secret -n primary \
+              --from-literal=MONGOCONNECTION="mongodb://ratingsuser:ratingspwd@ratingsdb-mongodb.db:27017/ratingsdb"
+          
+          helm install ratingsapi-chart -n primary $helmPath/ratingsapi-chart/ -f $helmPath/ratingsapi-chart/values-dev.yaml
+          helm upgrade ratingsapi-chart -n primary $helmPath/ratingsapi-chart/ -f $helmPath/ratingsapi-chart/values-dev.yaml
+          
+          #RatingsWeb - Ratings App Frontend
+          #Clone/Fork/Download Souerce code
+          https://github.com/monojit18/mslearn-aks-workshop-ratings-web.git
+          
+          #CD to the director where Dockerfile exists
+          #This docker build but performed in a Cloud Agent(VM) by ACR
+          az acr build -t $acrName.azurecr.io/ratings-web:v1.0.0 -r $acrName .
+          
+          helm install ratingsweb-chart -n primary $helmPath/ratingsweb-chart/ -f $helmPath/ratingsweb-chart/values-dev.yaml
+          helm upgrade ratingsweb-chart -n primary $helmPath/ratingsweb-chart/ -f $helmPath/ratingsweb-chart/values-dev.yaml
+          ```
+
           
 
         - ###### Traffic Splitting
 
           ![istio-trafficplit](./Assets/istio-trafficplit.png)
 
+          ```bash
+          kubectl apply -f $istioPath/Examples/HelloWorld/helloworld-app.yaml -n primary --context=$CTX_CLUSTER1
+          kubectl get po -n primary --context=$CTX_CLUSTER1
+          
+          kubectl apply -f $istioPath/Examples/HelloWorld/helloworld-app-v2.yaml -n primary --context=$CTX_CLUSTER1
+          kubectl get po -n primary --context=$CTX_CLUSTER1
+          
+          #Check Routing behaviour
+          #Update Primary Gateway Routes - Change Traffic weight
+          #Check Routing behaviour again
           ```
-          [TBD]
-          ```
-      
+
           
 
         - ###### Fault Injection
 
           ![istio-trafficplit](./Assets/istio-trafficplit-faultinjection.png)
 
-          ```
-          [TBD]
+          
+          
+        - ###### Distributed Tracing
+
+          ![istio-metrics-trace1](./Assets/istio-metrics-trace1.png)
+
+          ![istio-metrics-trace1](./Assets/istio-metrics-trace2.png)
+
+        - ###### Blue/Green
+
+          ```bash
+          #Blue/Green
+          #Deploy PodInfo Blue
+          kubectl apply -f $istioPath/Examples/BlueGreen/podinfo-blue.yaml -n primary --context=$CTX_CLUSTER1
+          
+          #Check Routing behaviour
+          
+          #Deploy PodInfo green
+          kubectl apply -f $istioPath/Examples/BlueGreen/podinfo-green.yaml -n primary --context=$CTX_CLUSTER1
+          
+          #Update Primary Gateway Routes - Change Traffic weight
+          #Check Routing behaviour again
           ```
 
           
-
-        - ###### Circuit Breaking
-
-        - ###### Distributed Tracing
 
         - ###### Service Mirroring
 
-          ![istio-trafficplit](./Assets/istio-mirroring-2.png)
-      
           
 
-          ![istio-trafficplit](./Assets/istio-mirroring-3.png)
+          ![k8s-mirroring](./Assets/k8s-mirroring.png)
+
+          
+
+          ![k8s-mirroring-cross](./Assets/k8s-mirroring-cross.png)
+
+          
 
           ![istio-trafficplit](./Assets/istio-mirroring.png)
 
-          ```
-          [TBD]
-          ```
-
           
-      
+
+          - ###### Create and Configure Secondary Cluster
+
+            ```bash
+            #Create Secondary Cluster - CLI or Portal
+            export CTX_CLUSTER2=CTX_CLUSTER2
+            kubectl config use-context $CTX_CLUSTER2
+            
+            #Check Cluster Health - Secondary
+            kubectl get no --context=$CTX_CLUSTER2
+            kubectl get ns --context=$CTX_CLUSTER2
+            kubectl create namespace istio-system --context $CTX_CLUSTER2
+            kubectl create namespace secondary --context $CTX_CLUSTER2
+            istioctl install --context=$CTX_CLUSTER2 --set profile=default -y
+            kubectl label namespace secondary istio-injection=enabled --context=$CTX_CLUSTER2
+            
+            kubectl get svc istio-ingressgateway -n istio-system
+            export INGRESS_HOST=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+            export INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].port}')
+            export SECURE_INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="https")].port}')
+            
+            export GATEWAY_URL2=$INGRESS_HOST:$INGRESS_PORT
+            echo "$GATEWAY_URL2"
+            
+            kubectl apply -f $istioPath/Examples/HelloWorld/helloworld-app-v2.yaml -n secondary --context=$CTX_CLUSTER2
+            kubectl get po -n secondary --context=$CTX_CLUSTER2
+            
+            kubectl apply -f $istioPath/Examples/Gateways/helloworld-v2-gateway.yaml -n secondary --context=$CTX_CLUSTER2
+            kubectl apply -f $istioPath/Examples/Gateways/helloworld-v2-destination-rule.yaml -n secondary --context=$CTX_CLUSTER2
+            
+            kubectl get svc -n secondary --context=$CTX_CLUSTER2
+            kubectl describe svc -n secondary --context=$CTX_CLUSTER2
+            kubectl get svc -A --context=$CTX_CLUSTER2
+            ```
+
+          - ###### Configure Primary to Mirror services
+
+            ```bash
+            #Switch to the Primary Cluster
+            kubectl config use-context $CTX_CLUSTER1
+            
+            #Deploy components so that Mirroring can work
+            kubectl apply -f $istioPath/Examples/Gateways/helloworld-serviceentry.yaml -n primary --context=$CTX_CLUSTER1
+            kubectl apply -f $istioPath/Examples/Gateways/helloworld-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
+            
+            kubectl get svc -n primary --context=$CTX_CLUSTER1
+            kubectl describe svc -n primary --context=$CTX_CLUSTER1
+            kubectl get svc -A --context=$CTX_CLUSTER1
+            ```
+
+            
+
       - #### Linkerd
-      
+
         ![istio-arch](./Assets/linkerd-arch.png)
-      
+
         - ##### Download Linkerd
-      
+
           ```bash
           #Export Linkerd version into an eb variable
           export LINKERD2_VERSION=stable-2.10.0
@@ -541,22 +517,22 @@
           linkerd check --pre
           linkerd version
           ```
-      
+
         - ##### Install Linkerd CLI - linkerdctl
-      
+
           ```bash
           linkerd install  | kubectl apply -f -
           
           #Check installation status
           linkerd check
           ```
-      
+
           
 
         - ##### Configure Linkerd in Primary Cluster
 
           - ###### Inject Linkerd into Primary Namespace
-      
+
             ```bash
             kubectl get ns/primary -o yaml | linkerd inject - | kubectl apply -f -
             ```
@@ -582,17 +558,17 @@
             - ###### View Basic Metrics
 
               ![linkerd-grafana1](./Assets/linkerd-grafana1.png)
-      
+
               ![linkerd-grafana2](./Assets/linkerd-grafana2.png)
 
             - ###### View Distributed Tracing
 
               ![linkerd-jaeger](./Assets/linkerd-jaeger.png)
-      
+
               
           
           - ###### Traffic Splitting
-      
+
             ![istio-trafficplit](./Assets/istio-trafficplit.png)
 
             ```
@@ -618,11 +594,11 @@
             ```
             [TBD]
             ```
-      
+
             
-      
+
           - ###### Distributed Tracing
-      
+
             ```
             [TBD]
             ```
