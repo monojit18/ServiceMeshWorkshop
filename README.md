@@ -241,6 +241,9 @@
           #Download Istio binary
           curl -L https://istio.io/downloadIstio | sh -
           
+          #Download specific version of Istio viz. 1.11.3
+          curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.11.3 TARGET_ARCH=x86_64 sh -
+          
           #The istioctl client binary in the bin/ directory
           #Add the istioctl client to your path (Linux or macOS):
           export PATH=$PWD/bin:$PATH
@@ -346,18 +349,27 @@
         - ##### Deploy more apps (Optional)
 
           ```bash
+          #Create namespace
+          kubectl create ns aks-workshop-dev --context=$CTX_CLUSTER1
+          
+          #Inject Istio into namespace
+          #This ensures sidecar container to be added for every dpeloyment in this namespace
+          kubectl label namespace aks-workshop-dev istio-injection=enabled --context=$CTX_CLUSTER1
+          
           #Deploy backend DB as container
           kubectl create ns db --context=$CTX_CLUSTER1
           
           helm repo add bitnami https://charts.bitnami.com/bitnami
           helm search repo bitnami
           
-          helm install ratingsdb bitnami/mongodb:4.4.10 -n db \
+          helm install ratingsdb bitnami/mongodb -n db \
           --set auth.username=ratingsuser,auth.password=ratingspwd,auth.database=ratingsdb \
-          --set controller.nodeSelector.agentpool=agentpool \
-          --set controller.defaultBackend.nodeSelector.agentpool=agentpool
+          --set controller.nodeSelector.agentpool=$sysNodePoolName \
+          --set controller.defaultBackend.nodeSelector.agentpool=$sysNodePoolName
+          
           
           #RatingsApi - Ratings API backend 
+          
           #Clone/Fork/Download Souerce code
           https://github.com/monojit18/mslearn-aks-workshop-ratings-api.git
           
@@ -365,13 +377,19 @@
           #This docker build but performed in a Cloud Agent(VM) by ACR
           az acr build -t $acrName.azurecr.io/ratings-api:v1.0.0 -r $acrName .
           
-          kubectl create secret generic service-mesh-mongo-secret -n primary \
-              --from-literal=MONGOCONNECTION="mongodb://ratingsuser:ratingspwd@ratingsdb-mongodb.db:27017/ratingsdb"
+          kubectl create secret generic aks-workshop-mongo-secret -n aks-workshop-dev --context=$CTX_CLUSTER1 \
+          --from-literal=MONGOCONNECTION="mongodb://ratingsuser:ratingspwd@ratingsdb-mongodb.db:27017/ratingsdb"
           
-          helm install ratingsapi-chart -n primary $helmPath/ratingsapi-chart/ -f $helmPath/ratingsapi-chart/values-dev.yaml
-          helm upgrade ratingsapi-chart -n primary $helmPath/ratingsapi-chart/ -f $helmPath/ratingsapi-chart/values-dev.yaml
+          #Change <acrName> in the $helmPath/ratingsapi-chart/values-dev.yaml
+          #Change <agentpool> in the $helmPath/ratingsapi-chart/values-dev.yaml
+          helm install ratingsapi-chart -n aks-workshop-dev $helmPath/ratingsapi-chart/ -f $helmPath/ratingsapi-chart/values-dev.yaml
+          helm upgrade ratingsapi-chart -n aks-workshop-dev $helmPath/ratingsapi-chart/ -f $helmPath/ratingsapi-chart/values-dev.yaml
+          
+          #helm uninstall ratingsapi-chart -n aks-workshop-dev
           
           #RatingsWeb - Ratings App Frontend
+          ===================================
+          
           #Clone/Fork/Download Souerce code
           https://github.com/monojit18/mslearn-aks-workshop-ratings-web.git
           
@@ -379,8 +397,25 @@
           #This docker build but performed in a Cloud Agent(VM) by ACR
           az acr build -t $acrName.azurecr.io/ratings-web:v1.0.0 -r $acrName .
           
-          helm install ratingsweb-chart -n primary $helmPath/ratingsweb-chart/ -f $helmPath/ratingsweb-chart/values-dev.yaml
-          helm upgrade ratingsweb-chart -n primary $helmPath/ratingsweb-chart/ -f $helmPath/ratingsweb-chart/values-dev.yaml
+          #Change <acrName> in the $helmPath/ratingsapi-chart/values-dev.yaml
+          #Change <agentpool> in the $helmPath/ratingsapi-chart/values-dev.yaml
+          helm install ratingsweb-chart -n aks-workshop-dev $helmPath/ratingsweb-chart/ -f $helmPath/ratingsweb-chart/values-dev.yaml
+          helm upgrade ratingsweb-chart -n aks-workshop-dev $helmPath/ratingsweb-chart/ -f $helmPath/ratingsweb-chart/values-dev.yaml
+          
+          #helm uninstall ratingsweb-chart -n aks-workshop-dev
+          
+          #Need a Gateway to expose the service outside
+          #Check Routing definitions
+          kubectl apply -f $istioPath/Examples/Gateways/ratings-gateway.yaml -n aks-workshop-dev --context=$CTX_CLUSTER1
+          
+          #Check Routing behaviour
+          #UnComment follwoing line in $istioPath/Examples/Gateways/primary-gateway.yaml
+          /*
+           # - uri:
+              #     prefix: /static
+          */
+          #This would make RatingsWeb app to fail
+          #Check Routing behaviour again
           ```
 
           
@@ -390,14 +425,26 @@
           ![istio-trafficplit](./Assets/istio-trafficplit.png)
 
           ```bash
+          #Traffic Shifting
           kubectl apply -f $istioPath/Examples/HelloWorld/helloworld-app.yaml -n primary --context=$CTX_CLUSTER1
           kubectl get po -n primary --context=$CTX_CLUSTER1
+          
+          #Check Routing definitions
+          kubectl apply -f $istioPath/Examples/Gateways/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
+          #Destination Rule
+          kubectl apply -f $istioPath/Examples/Gateways/helloworld-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
+          
+          #Check Routing behaviour
+          #Update Primary Gateway Routes - Change Traffic weight
           
           kubectl apply -f $istioPath/Examples/HelloWorld/helloworld-app-v2.yaml -n primary --context=$CTX_CLUSTER1
           kubectl get po -n primary --context=$CTX_CLUSTER1
           
-          #Check Routing behaviour
-          #Update Primary Gateway Routes - Change Traffic weight
+          #Check Routing definitions
+          kubectl apply -f $istioPath/Examples/Gateways/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
+          #Destination Rule
+          kubectl apply -f $istioPath/Examples/Gateways/helloworld-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
+          
           #Check Routing behaviour again
           ```
 

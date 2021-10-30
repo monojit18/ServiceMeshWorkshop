@@ -11,12 +11,12 @@ deployment:
   maxSurge: 1
   maxUnavailable: 1
   nodeSelector:
-    agentpool: agentpool
+    agentpool: akssyspool
   imagePullSecrets:
   - name: aks-acr-secret
   containers:
   - name: ratingsweb-app
-    image: akswkshpacr.azurecr.io/ratings-web:v1.0.0
+    image: srvmeshacr.azurecr.io/ratings-web:v1.0.0
     imagePullPolicy: IfNotPresent
     readinessPort: 8080
     readinessPath: /healthz
