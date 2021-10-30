@@ -469,52 +469,6 @@
       
             - ###### Scale Pods; view Metrics
       
-              
-      
-        - ##### Configure Kubctl context - Secondary
-      
-          ```bash
-          export CTX_CLUSTER2=secondary
-          
-          #Set Context to secondary
-          az aks get-credentials -g $resourceGroup -n $clusterName --context $CTX_CLUSTER2
-          
-          #Check cluster health
-          kubectl get no
-          ```
-      
-        - ##### Install Istio CLI on Secondary - istioctl
-      
-          ```bash
-          #Select Default Istio Profile settings
-          istioctl install --set profile=default -y --context=$CTX_CLUSTER2
-          ```
-
-        - ##### Configure Istio in Secondary Cluster
-      
-          - ###### Inject Istio into Namespaces
-
-            ```bash
-            kubectl label namespace secondary istio-injection=enabled
-            ```
-
-          - ##### Install Kiali dashboard
-
-            ```bash
-            kubectl apply -f $istioPath/samples/addons
-            
-            #Check Kiali deployment
-            kubectl rollout status deployment/kiali -n istio-system
-            istioctl dashboard kiali&
-            ```
-
-          - ##### Observability
-
-            - ###### View Basic Metrics
-      
-            - ###### View API Dependencies
-
-            - ###### Scale Pods; view Metrics
 
           
 
@@ -525,13 +479,13 @@
           ```
           [TBD]
           ```
-      
+
           
       
         - ###### Fault Injection
-      
+
           ![istio-trafficplit](./Assets/istio-trafficplit-faultinjection.png)
-      
+
           ```
           [TBD]
           ```
@@ -539,31 +493,31 @@
           
       
         - ###### Circuit Breaking
-      
+
         - ###### Distributed Tracing
-      
+
         - ###### Service Mirroring
-      
+
           ![istio-trafficplit](./Assets/istio-mirroring-2.png)
-      
+
           
-      
+
           ![istio-trafficplit](./Assets/istio-mirroring-3.png)
-      
+
           ![istio-trafficplit](./Assets/istio-mirroring.png)
-      
+
           ```
           [TBD]
           ```
-      
+
           
       
       - #### Linkerd
-      
+
         ![istio-arch](./Assets/linkerd-arch.png)
-      
+
         - ##### Download Linkerd
-      
+
           ```bash
           #Export Linkerd version into an eb variable
           export LINKERD2_VERSION=stable-2.10.0
@@ -584,11 +538,11 @@
           #Check installation status
           linkerd check
           ```
-
-          
-
-        - ##### Configure Linkerd in Primary Cluster
       
+          
+      
+        - ##### Configure Linkerd in Primary Cluster
+
           - ###### Inject Linkerd into Primary Namespace
 
             ```bash
@@ -596,67 +550,67 @@
             ```
 
           - ##### Install Viz dashboard
-
+      
             ```bash
             linkerd viz install | k apply -f -
             linkerd check
             linkerd viz dashboard&
             ```
-
+      
           - ##### Install Jaeger for Distributed Tracing
-
+      
             ```bash
             linkerd jaeger install | k apply -f -
             linkerd jaeger check
             linkerd jaeger dashboard&
             ```
-
+      
           - ##### Observability
-
+      
             - ###### View Basic Metrics
 
               ![linkerd-grafana1](./Assets/linkerd-grafana1.png)
-      
+
               ![linkerd-grafana2](./Assets/linkerd-grafana2.png)
-      
+
             - ###### View Distributed Tracing
-      
+
               ![linkerd-jaeger](./Assets/linkerd-jaeger.png)
-      
+
               
           
           - ###### Traffic Splitting
-      
+
             ![istio-trafficplit](./Assets/istio-trafficplit.png)
       
             ```
             [TBD]
             ```
-      
+
             ![linkerd-traffic-split](./Assets/linkerd-traffic-split.png)
           
             
-      
+
           - ###### Fault Injection
       
             ![istio-trafficplit](./Assets/istio-trafficplit-faultinjection.png)
-      
+
             ```
             [TBD]
             ```
-      
+
             
       
           - ###### Circuit Breaking
-      
+
             ```
             [TBD]
             ```
-      
+
             
       
           - ###### Distributed Tracing
-      
+
             ```
             [TBD]
             ```
