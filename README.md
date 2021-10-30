@@ -288,7 +288,7 @@
             ```bash
             #Install Istio Addons
             #This primarily installs all dependencies for observability by Istio viz. Grafana, Kiali dashboard etc.
-            kubectl apply -f $istioPath/Components/samples/addons
+            kubectl apply -f $istioPath/Components/samples/addons --context=$CTX_CLUSTER1
             
             #Check rollout status of the Kiali deployment - usually takes sometime
             kubectl rollout status deployment/kiali -n istio-system
@@ -311,8 +311,8 @@
             kubectl apply -f $istioPath/Examples/BookInfo/bookinfo.yaml -n primary
             
             #Check Deployed Components
-            kubectl get svc -n primary
-            kubectl get pods -n primary
+            kubectl get svc -n primary --context=$CTX_CLUSTER1
+            kubectl get pods -n primary --context=$CTX_CLUSTER1
             
             #Quick check to test BookInfo app
             podName=$(kubectl get pod -l app=ratings -n primary -o jsonpath='{.items[0].metadata.name}')
@@ -476,8 +476,63 @@
 
           ![istio-trafficplit](./Assets/istio-trafficplit-faultinjection.png)
 
+          ```yaml
+          apiVersion: networking.istio.io/v1alpha3
+          kind: Gateway
+          metadata:
+            name: ratingsweb-gateway  
+          spec:
+            selector:
+              istio: ingressgateway # use istio default controller
+            servers:
+            - port:
+                number: 80
+                name: http
+                protocol: HTTP
+              hosts:
+              - "*"
+          ---
+          apiVersion: networking.istio.io/v1alpha3
+          kind: VirtualService
+          metadata:
+            name: ratingsweb-virtual-service  
+          spec:
+            hosts:
+            - "*"
+            gateways:
+            - ratingsweb-gateway
+            http:
+            # - fault:
+            #     delay:
+            #       fixedDelay: 3s
+            #       percentage:
+            #         value: 100
+            #   route:
+            #   - destination:
+            #       host: ratingsweb-service
+            #       port:
+            #         number: 80  
+            - match:
+              - uri:
+                  regex: /?(.*)  
+              route:
+              - destination:
+                  host: ratingsweb-service
+                  port:
+                    number: 80
+          ```
+
+          ```bash
+          #Check Routing definitions
+          kubectl apply -f $istioPath/Examples/Gateways/ratings-gateway.yaml -n primary --context=$CTX_CLUSTER1
           
+          #UnComment Fault section
+          kubectl apply -f $istioPath/Examples/Gateways/ratings-gateway.yaml -n primary --context=$CTX_CLUSTER1
+          #Check Routing definitions again
+          ```
+
           
+
         - ###### Distributed Tracing
 
           ![istio-metrics-trace1](./Assets/istio-metrics-trace1.png)
@@ -508,6 +563,49 @@
           #Check Routing behaviour again
           ```
 
+        - ###### Circuit Breaker
+
+          ```yaml
+          apiVersion: networking.istio.io/v1alpha3
+          kind: DestinationRule
+          metadata:
+            name: httpbin
+          spec:
+            host: httpbin
+            trafficPolicy:
+              connectionPool:
+                tcp:
+                  maxConnections: 1
+                http:
+                  http1MaxPendingRequests: 1
+                  maxRequestsPerConnection: 1
+              outlierDetection:
+                consecutive5xxErrors: 1
+                interval: 1s
+                baseEjectionTime: 3m
+                maxEjectionPercent: 100
+          EOF
+          ```
+
+          ```bash
+          #Circuit Breaker
+          #Deploy HttpBin App
+          kubectl apply -f $istioPath/Examples/HttpBin/httpbin.yaml -n primary --context=$CTX_CLUSTER1
+          kubectl apply -f $istioPath/Examples/Gateways/httpbin-gateway.yaml -n primary --context=$CTX_CLUSTER1
+          
+          #Deploy HttpBin Destination Rule
+          kubectl apply -f $istioPath/Examples/Gateways/httpbin-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
+          
+          #Deploy Fortio client
+          kubectl apply -f $istioPath/Examples/HttpBin/sample-client/fortio-deploy.yaml -n primary --context=$CTX_CLUSTER1
+          
+          #Make class from Fortio client
+          export FORTIO_POD=$(kubectl get pods -l app=fortio -o 'jsonpath={.items[0].metadata.name}')
+          kubectl exec "$FORTIO_POD" -c fortio -- /usr/bin/fortio curl -quiet http://httpbin:8000/get
+          
+          #Check Routing behaviour
+          ```
+
           
 
         - ###### Service Mirroring
@@ -530,7 +628,11 @@
 
             ```bash
             #Create Secondary Cluster - CLI or Portal
-            export CTX_CLUSTER2=CTX_CLUSTER2
+            export CTX_CLUSTER2=secondary
+            
+            #Connect to Public AKS Cluster with Primary Context
+            az aks get-credentials -g $secondaryResourceGroup -n $secondaryClusterName --context $CTX_CLUSTER2
+            
             kubectl config use-context $CTX_CLUSTER2
             
             #Check Cluster Health - Secondary
@@ -538,8 +640,18 @@
             kubectl get ns --context=$CTX_CLUSTER2
             kubectl create namespace istio-system --context $CTX_CLUSTER2
             kubectl create namespace secondary --context $CTX_CLUSTER2
+            
+            #Install Istio CLI
+            ##Select Default Istio Profile settings
             istioctl install --context=$CTX_CLUSTER2 --set profile=default -y
+            
+            #Inject Istio into Secondary namespace of the cluster 
+            #This ensures sidecar container to be added for every dpeloyment in this namespace
             kubectl label namespace secondary istio-injection=enabled --context=$CTX_CLUSTER2
+            
+            #Install Istio Addons
+            #This primarily installs all dependencies for observability by Istio viz. Grafana, Kiali dashboard etc.
+            kubectl apply -f $istioPath/Components/samples/addons --context=$CTX_CLUSTER2
             
             kubectl get svc istio-ingressgateway -n istio-system
             export INGRESS_HOST=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
@@ -566,6 +678,9 @@
             #Switch to the Primary Cluster
             kubectl config use-context $CTX_CLUSTER1
             
+            #Check Routing definitions
+            kubectl apply -f $istioPath/Examples/Gateways/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
+            
             #Deploy components so that Mirroring can work
             kubectl apply -f $istioPath/Examples/Gateways/helloworld-serviceentry.yaml -n primary --context=$CTX_CLUSTER1
             kubectl apply -f $istioPath/Examples/Gateways/helloworld-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
@@ -575,115 +690,179 @@
             kubectl get svc -A --context=$CTX_CLUSTER1
             ```
 
+          - ###### CleanUp
+
+            ```bash
+            #Uninstall Istio setup
+            istioctl x uninstall --set profile=default --purge --context=$CTX_CLUSTER1
+            kubectl delete namespace istio-system --context=$CTX_CLUSTER1
+            
+            istioctl x uninstall --set profile=default --purge --context=$CTX_CLUSTER2
+            kubectl delete namespace istio-system --context=$CTX_CLUSTER2
+            ```
+
             
 
       - #### Linkerd
 
         ![istio-arch](./Assets/linkerd-arch.png)
 
+        
+
+        - ##### Define CLI Variables
+
+          ```bash
+          linkerdResourceGroup="secondary-workshop-rg"
+          linkerdClusterName="secondary-mesh-cluster"
+          linkerdAcrName="scdmeshacr"
+          $linkerdIngressName="linkerd-ing"
+          $linkerdIngressNSName="$linkerdIngressName-ns"
+          $linkerdIngressDeployName=""
+          helmPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/AKS/Helm"
+          $linkerdPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/Linkerd"
+          ```
+
+        - ##### Install Nginx Ingress
+
+          ```bash
+          #Install Nginx Ingress Controller
+          #Create Ingress Namespace
+          kubectl create namespace $linkerdIngressNSName
+          kubectl label namespace $linkerdIngressNSName name=$linkerdIngressNSName
+          
+          #Install nginx using Helm
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+          helm repo update
+          
+          #Install Ingress controller
+          helm install $linkerdIngressName ingress-nginx/ingress-nginx --namespace $linkerdIngressNSName \
+          #--set controller.service.loadBalancerIP=$backendIpAddress \
+          #--set controller.service.annotations.'service\.beta\.kubernetes\.io/azure-load-balancer-internal-subnet'=$aksIngressSubnetName \
+          --set controller.nodeSelector.agentpool=$sysNodePoolName \
+          --set controller.defaultBackend.nodeSelector.agentpool=$sysNodePoolName
+          ```
+
+        - ##### Deploy K8s Ingress
+
+          ```bash
+          helm create ingress-chart
+          
+          helm install  ingress-chart -n secondary $helmPath/ingress-chart/ -f $helmPath/ingress-chart/values-dev.yaml
+          helm upgrade  ingress-chart -n secondary $helmPath/ingress-chart/ -f $helmPath/ingress-chart/values-dev.yaml
+          ```
+
         - ##### Download Linkerd
 
           ```bash
-          #Export Linkerd version into an eb variable
           export LINKERD2_VERSION=stable-2.10.0
           
-          #Install above version
           curl -sL https://run.linkerd.io/install | sh
-          
-          #Check installation status
           linkerd check --pre
           linkerd version
+          
+          linkerd install  | kubectl apply -f -
+          linkerd check
+          
+          Install Viz for Linkerd
+          =========================
+          linkerd viz install | kubectl apply -f -
+          linkerd check
+          linkerd viz dashboard&
+          
+          Install Jaeger for Linkerd
+          ===========================
+          linkerd jaeger install | kubectl apply -f -
+          linkerd jaeger check
+          linkerd jaeger dashboard&
           ```
 
-        - ##### Install Linkerd CLI - linkerdctl
+        - ##### Inject Linkerd
 
           ```bash
-          linkerd install  | kubectl apply -f -
+          Inject Linkerd into Ingress Cntroller
+          =======================================
+          kubectl -n $linkerdIngressNSName get deploy/$linkerdIngressDeployName -o yaml | linkerd inject --ingress - | kubectl apply -f -
           
-          #Check installation status
-          linkerd check
+          Inject Linkerd into Namespaces
+          ================================
+          kubectl get deploy -n secondary -o yaml | linkerd inject - | kubectl apply -f -
+          ```
+
+        - ##### Observability
+
+          - ###### View Basic Metrics
+
+            ![linkerd-grafana1](./Assets/linkerd-grafana1.png)
+
+            ![linkerd-grafana2](./Assets/linkerd-grafana2.png)
+
+            
+
+        - ###### Traffic Splitting
+
+          ![istio-trafficplit](./Assets/istio-trafficplit.png)
+
+          ```bash
+          kubectl config set-context --current --namespace=emojivoto
+          kubectl apply -f $linkerdPath/Examples/emojivoto-ingress.yaml 
+          kubectl apply -f $linkerdPath/Examples/emojivoto.yaml
+          kubectl get deploy -n emojivoto -o yaml | linkerd inject - | kubectl apply -f -
+          ```
+
+          ![linkerd-traffic-split](./Assets/linkerd-traffic-split.png)
+
+          
+
+        - ###### Fault Injection
+
+          ![istio-trafficplit](./Assets/istio-trafficplit-faultinjection.png)
+
+          
+
+          ```bash
+          kubectl -n emojivoto set env --all deploy OC_AGENT_HOST=collector.linkerd-jaeger:55678
+          for ((i=1;i<=100;i++)); do   curl -kubectl "https://emojivoto.domain.com/api/list"; done
+          ```
+
+        - ###### Deploy more apps - Ratings app (Optional)
+
+          ```bash
+          #Deploy backend DB as container
+          kubectl create ns db --context=$CTX_CLUSTER1
+          
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm search repo bitnami
+          
+          helm install ratingsdb bitnami/mongodb:4.4.10 -n db \
+          --set auth.username=ratingsuser,auth.password=ratingspwd,auth.database=ratingsdb \
+          --set controller.nodeSelector.agentpool=agentpool \
+          --set controller.defaultBackend.nodeSelector.agentpool=agentpool
           ```
 
           
 
-        - ##### Configure Linkerd in Primary Cluster
+        - ###### Circuit Breaking
 
-          - ###### Inject Linkerd into Primary Namespace
+          ```bash
+          #Left as an Exercise
+          ```
 
-            ```bash
-            kubectl get ns/primary -o yaml | linkerd inject - | kubectl apply -f -
-            ```
-
-          - ##### Install Viz dashboard
-
-            ```bash
-            linkerd viz install | k apply -f -
-            linkerd check
-            linkerd viz dashboard&
-            ```
-
-          - ##### Install Jaeger for Distributed Tracing
-
-            ```bash
-            linkerd jaeger install | k apply -f -
-            linkerd jaeger check
-            linkerd jaeger dashboard&
-            ```
-
-          - ##### Observability
-
-            - ###### View Basic Metrics
-
-              ![linkerd-grafana1](./Assets/linkerd-grafana1.png)
-
-              ![linkerd-grafana2](./Assets/linkerd-grafana2.png)
-
-            - ###### View Distributed Tracing
-
-              ![linkerd-jaeger](./Assets/linkerd-jaeger.png)
-
-              
           
-          - ###### Traffic Splitting
 
-            ![istio-trafficplit](./Assets/istio-trafficplit.png)
+        - ###### Distributed Tracing
 
-            ```
-            [TBD]
-            ```
-
-            ![linkerd-traffic-split](./Assets/linkerd-traffic-split.png)
+          ![linkerd-jaeger](./Assets/linkerd-jaeger.png)
           
-            
-
-          - ###### Fault Injection
-
-            ![istio-trafficplit](./Assets/istio-trafficplit-faultinjection.png)
-
-            ```
-            [TBD]
-            ```
-
-            
-
-          - ###### Circuit Breaking
-
-            ```
-            [TBD]
-            ```
-
-            
-
-          - ###### Distributed Tracing
-
-            ```
-            [TBD]
-            ```
           
-            
+
+        - ###### Service Mirroring
+
+          ![linkerd-mirroring](./Assets/linkerd-mirroring.png)
           
-          - ###### Service Mirroring
+          ```bash
+          #Left as an Exercise
+          ```
           
-            ![linkerd-mirroring](./Assets/linkerd-mirroring.png)
+          
 
   - ## References
