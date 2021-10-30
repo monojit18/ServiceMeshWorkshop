@@ -23,24 +23,24 @@ spec:
   gateways:
   - primary-gateway
   http:
-  - match:
-    - uri:
-        exact: /podinfo
-    rewrite:
-      uri: /
-    route:
-    - destination:
-        host: podinfo   
-        subset: v1     
-        port:
-          number: 9898 
-      weight: 10        
-    - destination:
-        host: podinfo  
-        subset: v2 
-        port:
-          number: 9898 
-      weight: 90
+  # - match:
+  #   - uri:
+  #       exact: /podinfo
+  #   rewrite:
+  #     uri: /
+  #   route:
+  #   - destination:
+  #       host: podinfo   
+  #       subset: v1     
+  #       port:
+  #         number: 9898 
+  #     weight: 100
+  #   - destination:
+  #       host: podinfo  
+  #       subset: v2 
+  #       port:
+  #         number: 9898 
+  #     weight: 0
   - match:  
     - uri:
         exact: /hello
@@ -51,12 +51,18 @@ spec:
         port:
           number: 5000   
       weight: 100
-    mirror:
-      host: hellov2.wkshpdev.com
-      port:
-        number: 80
-    mirrorPercentage:
-      value: 50
+    # - destination:
+    #     host: helloworld
+    #     subset: v2
+    #     port:
+    #       number: 5000   
+    #   weight: 50
+    # mirror:
+    #   host: 20.102.34.67.nip.io
+    #   port:
+    #     number: 80
+    # mirrorPercentage:
+    #   value: 50
   - match:
     - uri:
         exact: /product
@@ -68,8 +74,8 @@ spec:
         port:
           number: 9080
   - match:  
-    - uri:
-        prefix: /static
+    # - uri:
+    #     prefix: /static
     - uri:
         exact: /login
     - uri:
