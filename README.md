@@ -230,6 +230,8 @@
           ```bash
           primaryResourceGroup=$aksResourceGroup
           primaryClusterName=$clusterName
+          secondaryResourceGroup="secondary-workshop-rg"
+          secondaryClusterName="secondary-mesh-cluster"
           primaryAcrName=$acrName
           helmPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/AKS/Helm"
           istioPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/Istio"
@@ -469,12 +471,20 @@
           #Deploy PodInfo Blue
           kubectl apply -f $istioPath/Examples/BlueGreen/podinfo-blue.yaml -n primary --context=$CTX_CLUSTER1
           
-          #Check Routing behaviour
+          #Check Routing definitions
+          kubectl apply -f $istioPath/Examples/Gateways/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
+          #Destination Rule
+          kubectl apply -f $istioPath/Examples/Gateways/podinfo-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
           
           #Deploy PodInfo green
           kubectl apply -f $istioPath/Examples/BlueGreen/podinfo-green.yaml -n primary --context=$CTX_CLUSTER1
           
           #Update Primary Gateway Routes - Change Traffic weight
+          #Check Routing definitions
+          kubectl apply -f $istioPath/Examples/Gateways/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
+          #Destination Rule
+          kubectl apply -f $istioPath/Examples/Gateways/podinfo-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
+          
           #Check Routing behaviour again
           ```
 
