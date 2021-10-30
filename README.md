@@ -465,11 +465,23 @@
       
             - ###### View Basic Metrics
       
+              ![istio-metrics-graph](./Assets/istio-metrics-graph.png)
+      
+              ![istio-metrics-inbound](./Assets/istio-metrics-inbound.png)
+      
+              ![istio-metrics-inbound](./Assets/istio-metrics-oob.png)
+            
+            
+            
             - ###### View API Dependencies
+            
+              ![istio-metrics-trace1](./Assets/istio-metrics-trace1.png)
+            
+              ![istio-metrics-trace1](./Assets/istio-metrics-trace2.png)
+            
+              ###### 
+            
       
-            - ###### Scale Pods; view Metrics
-      
-
           
 
         - ###### Traffic Splitting
@@ -479,9 +491,9 @@
           ```
           [TBD]
           ```
-
-          
       
+          
+
         - ###### Fault Injection
 
           ![istio-trafficplit](./Assets/istio-trafficplit-faultinjection.png)
@@ -491,7 +503,7 @@
           ```
 
           
-      
+
         - ###### Circuit Breaking
 
         - ###### Distributed Tracing
@@ -499,7 +511,7 @@
         - ###### Service Mirroring
 
           ![istio-trafficplit](./Assets/istio-mirroring-2.png)
-
+      
           
 
           ![istio-trafficplit](./Assets/istio-mirroring-3.png)
@@ -513,11 +525,11 @@
           
       
       - #### Linkerd
-
+      
         ![istio-arch](./Assets/linkerd-arch.png)
-
+      
         - ##### Download Linkerd
-
+      
           ```bash
           #Export Linkerd version into an eb variable
           export LINKERD2_VERSION=stable-2.10.0
@@ -540,49 +552,49 @@
           ```
       
           
-      
+
         - ##### Configure Linkerd in Primary Cluster
 
           - ###### Inject Linkerd into Primary Namespace
-
+      
             ```bash
             kubectl get ns/primary -o yaml | linkerd inject - | kubectl apply -f -
             ```
 
           - ##### Install Viz dashboard
-      
+
             ```bash
             linkerd viz install | k apply -f -
             linkerd check
             linkerd viz dashboard&
             ```
-      
+
           - ##### Install Jaeger for Distributed Tracing
-      
+
             ```bash
             linkerd jaeger install | k apply -f -
             linkerd jaeger check
             linkerd jaeger dashboard&
             ```
-      
+
           - ##### Observability
-      
+
             - ###### View Basic Metrics
 
               ![linkerd-grafana1](./Assets/linkerd-grafana1.png)
-
+      
               ![linkerd-grafana2](./Assets/linkerd-grafana2.png)
 
             - ###### View Distributed Tracing
 
               ![linkerd-jaeger](./Assets/linkerd-jaeger.png)
-
+      
               
           
           - ###### Traffic Splitting
-
-            ![istio-trafficplit](./Assets/istio-trafficplit.png)
       
+            ![istio-trafficplit](./Assets/istio-trafficplit.png)
+
             ```
             [TBD]
             ```
@@ -592,7 +604,7 @@
             
 
           - ###### Fault Injection
-      
+
             ![istio-trafficplit](./Assets/istio-trafficplit-faultinjection.png)
 
             ```
@@ -600,17 +612,17 @@
             ```
 
             
-      
+
           - ###### Circuit Breaking
 
             ```
             [TBD]
             ```
-
+      
             
       
           - ###### Distributed Tracing
-
+      
             ```
             [TBD]
             ```
