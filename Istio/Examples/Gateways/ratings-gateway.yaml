@@ -23,6 +23,16 @@ spec:
   gateways:
   - ratingsweb-gateway
   http:
+  # - fault:
+  #     delay:
+  #       fixedDelay: 3s
+  #       percentage:
+  #         value: 100
+  #   route:
+  #   - destination:
+  #       host: ratingsweb-service
+  #       port:
+  #         number: 80  
   - match:
     - uri:
         regex: /?(.*)  
