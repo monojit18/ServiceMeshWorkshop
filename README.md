@@ -350,6 +350,16 @@
 
         - ##### Deploy more apps (Optional)
 
+          ![ratings-api-general](./Assets/ratings-api-general.png)
+
+          
+
+          ![ratings-api-flow2](./Assets/ratings-api-flow2.png)
+
+          
+
+          ![ratings-web-flow2](./Assets/ratings-web-flow2.png)
+
           ```bash
           #Create namespace
           kubectl create ns aks-workshop-dev --context=$CTX_CLUSTER1
@@ -423,6 +433,16 @@
           
 
         - ###### Traffic Splitting
+
+          ![k8s-service](./Assets/k8s-service.png)
+
+          
+
+          ![k8s-mirroring](./Assets/k8s-mirroring.png)
+
+          
+
+          
 
           ![istio-trafficplit](./Assets/istio-trafficplit.png)
 
