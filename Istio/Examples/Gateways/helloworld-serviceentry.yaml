@@ -4,7 +4,7 @@ metadata:
   name: helloworld-serviceentry  
 spec:
   hosts:
-  - hellov2.wkshpdev.com
+  - 20.102.34.67.nip.io
   ports:
   - number: 80
     name: http
