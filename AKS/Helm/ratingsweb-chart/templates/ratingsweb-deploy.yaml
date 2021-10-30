@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ $deployment.name }}
-  namespace: {{ $deployment.namespace }}
+  # namespace: {{ $deployment.namespace }}
   labels:
   {{ toYaml $deployment.labels | nindent 4 }}
 spec:

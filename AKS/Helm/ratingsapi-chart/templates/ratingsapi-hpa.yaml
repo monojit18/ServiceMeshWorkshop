@@ -3,7 +3,7 @@ apiVersion: autoscaling/v2beta2
 kind: HorizontalPodAutoscaler
 metadata:
   name: {{ $hpa.name }}
-  namespace: {{ $hpa.namespace }}
+  # namespace: {{ $hpa.namespace }}
 spec:
   scaleTargetRef:  
     {{ toYaml $hpa.scaleTargetRef | nindent 4 }}

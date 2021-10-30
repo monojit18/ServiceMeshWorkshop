@@ -1,6 +1,6 @@
 deployment:
   name: ratingsapi-deploy
-  namespace: aks-workshop-dev
+  # namespace: aks-workshop-dev
   labels:
     app: ratingsapi-deploy
   selectorLabels:
@@ -31,7 +31,7 @@ deployment:
       valueSecret: aks-workshop-mongo-secret
 service:
   name: ratingsapi-service
-  namespace: aks-workshop-dev
+  # namespace: aks-workshop-dev
   selector:
     app: ratingsapi-pod    
   type: ClusterIP
@@ -41,7 +41,7 @@ service:
     targetPort: 3000
 hpa:
   name: ratingsapi-hpa
-  namespace: aks-workshop-dev
+  # namespace: aks-workshop-dev
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment

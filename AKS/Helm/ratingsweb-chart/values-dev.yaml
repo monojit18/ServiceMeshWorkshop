@@ -1,6 +1,6 @@
 deployment:
   name: ratingsweb-deploy
-  namespace: aks-workshop-dev
+  # namespace: aks-workshop-dev
   labels:
     app: ratingsweb-deploy
   selectorLabels:
@@ -34,7 +34,7 @@ deployment:
     - containerPort: 8080
 service:
   name: ratingsweb-service
-  namespace: aks-workshop-dev
+  # namespace: aks-workshop-dev
   selector:
     app: ratingsweb-pod
   type: ClusterIP
