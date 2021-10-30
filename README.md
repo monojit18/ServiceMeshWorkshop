@@ -860,10 +860,16 @@
 
             - ###### View Basic Metrics
 
-            - ###### View API Dependencies
+              ![linkerd-grafana1](./Assets/linkerd-grafana1.png)
 
-            - ###### Scale Pods; view Metrics
+              ![linkerd-grafana2](./Assets/linkerd-grafana2.png)
 
+            - ###### View Distributed Tracing
+
+              ![linkerd-jaeger](./Assets/linkerd-jaeger.png)
+
+              
+          
           - ###### Traffic Splitting
 
             ![istio-trafficplit](./Assets/istio-trafficplit.png)
@@ -872,6 +878,8 @@
             [TBD]
             ```
 
+            ![linkerd-traffic-split](./Assets/linkerd-traffic-split.png)
+          
             
 
           - ###### Fault Injection
@@ -897,11 +905,11 @@
             ```
             [TBD]
             ```
-
+          
             
-
+          
           - ###### Service Mirroring
-
+          
             ![linkerd-mirroring](./Assets/linkerd-mirroring.png)
-
+  
   - ## References
