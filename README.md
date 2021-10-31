@@ -16,6 +16,10 @@
 
   
 
+  ![aks-hl](./Assets/aks-ref-arch.png)
+
+  
+
 - ### Understand ServiceMesh - *What it is?*
 
   ![istio-arch](./Assets/service-mesh.png)
