@@ -875,6 +875,13 @@
 
       ![istio-mirroring-2](./Assets/istio-mirroring-3.png)
 
+      - Unified Model across Clusters
+        - Observability
+        - Reliability
+        - Trust/Security
+        - Separate Failure domain - Faliure of one cluster transfers control to Others
+        - Supporting different/heteropgeneous networks
+
       
 
     - ### API Mesh
@@ -883,10 +890,45 @@
 
       
 
+      - Authentication theu OAuth or OIDC
+
+      - Deep integration with Azure AD B2B and B2C scenarios
+
+      - APIM Policies
+
+        - Caching
+
+        - Rate Limiting
+
+        - Retry
+
+        - URL Rewrite
+
+        - Response/Response body transformation e.g. JSON to XML and vice versa
+
+        - Control Flow and Usage
+
+        - **Custom Role, RBAC**
+
+        - .....
+
+          
+
+    - ### Extended Elastic Scaling
+
+      - Custom solution using K8s REST API
+      - Monitor Cluster Metric and Scale Applications across Multiple clusters
+      - On-Prem to Cloud Scaling on need basis
+
+    
+
   - ## References
 
     - **Istio** - https://istio.io/latest/docs/setup/getting-started/
     - **Linkerd** - https://linkerd.io/2.11/getting-started/
+    - Open Service Mesh -
+      - https://openservicemesh.io/
+      - https://docs.microsoft.com/en-us/azure/aks/open-service-mesh-about
     - **APIM Self Hosted** - https://docs.microsoft.com/en-us/azure/api-management/self-hosted-gateway-overview
     - **Github Repo** - https://github.com/monojit18/ServiceMeshWorkshop
 
