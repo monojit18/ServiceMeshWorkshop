@@ -24,6 +24,8 @@
 
   ![istio-arch](./Assets/service-mesh.png)
 
+  
+
   - #### Features
 
     - Observability
@@ -58,6 +60,13 @@
 ### ![workflow](./Assets/workflow.png)
 
 - ## HOL
+
+  - ### Pre-Requisites
+
+    - Azure CLI
+    - VSCode
+    - Github client
+    - Any form of K8s Cluster. AKS is used here as an example
 
   - ### Let us Delve into it
 
@@ -547,7 +556,11 @@
 
         ![istio-metrics-trace1](./Assets/istio-metrics-trace2.png)
 
+        
+
       - ###### Blue/Green
+
+        ![istio-trafficplit-bluegreen](./Assets/istio-trafficplit-bluegreen.png)
 
         ```bash
         #Blue/Green
@@ -570,6 +583,8 @@
         
         #Check Routing behaviour again
         ```
+
+        
 
       - ###### Circuit Breaker
 
