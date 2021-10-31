@@ -6,6 +6,12 @@
 
 ## Purpose
 
+- A view of Service Mesh technology
+- Insights into the features/benefits it provides 
+- No preference on particular tools/resopurce - open discussion
+  - Istio/Linkerd is used just as a medium of comunication
+- Provide a hands-on experience to 
+
 ## What to Accomplish
 
 - ### K8s High Level Architecture
