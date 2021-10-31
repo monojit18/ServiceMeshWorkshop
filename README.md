@@ -64,7 +64,7 @@
   - ### Pre-Requisites
 
     - Azure CLI
-    - VSCode
+    - VSCode *(preferred)*
     - Github client
     - Any form of K8s Cluster. AKS is used here as an example
 
