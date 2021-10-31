@@ -802,6 +802,8 @@
 
           ![istio-trafficplit](./Assets/istio-trafficplit.png)
 
+          
+
           ```bash
           kubectl config set-context --current --namespace=emojivoto
           kubectl apply -f $linkerdPath/Examples/emojivoto-ingress.yaml 
@@ -862,7 +864,26 @@
           ```bash
           #Left as an Exercise
           ```
-          
-          
+
+  - ## What Next
+
+    - ### Multi Cluster
+
+      ![istio-mirroring-2](./Assets/istio-mirroring-2.png)
+
+      ![istio-mirroring-2](./Assets/istio-mirroring-3.png)
+
+      
+
+    - ### API Mesh
+
+      ![apimesh](./Assets/apimesh.png)
+
+      
 
   - ## References
+
+    - Istio - https://istio.io/latest/docs/setup/getting-started/
+    - Linkerd - https://linkerd.io/2.11/getting-started/
+    - APIM Self Hosted - https://docs.microsoft.com/en-us/azure/api-management/self-hosted-gateway-overview
+    - Github Repo - 
