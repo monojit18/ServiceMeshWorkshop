@@ -197,7 +197,7 @@
         ```bash
         #Follow similar steps as Primary
         
-        #Create CLuster from CLI or Portal
+        #Create AKS Cluster from CLI or Portal
         ```
 
     - ### Service Mesh
