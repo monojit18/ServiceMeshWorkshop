@@ -81,13 +81,13 @@
         acrName="srvmeshacr"
         spDisplayName="http://service-mesh-aks-cluster-sp"
         aksVnetName="primary-cluster-vnet"
-        aksVnetPrefix="31.0.0.0/21"
+        aksVnetPrefix=""
         aksVnetId=
         aksSubnetName="primary-cluster-subnet"
-        aksSubnetPrefix="31.0.0.0/24"
+        aksSubnetPrefix=""
         aksSubnetId=
-        aksServicePrefix="31.0.1.0/24"
-        dnsServiceIP="31.0.1.10"
+        aksServicePrefix=""
+        dnsServiceIP=""
         sysNodeSize="Standard_DS2_v2"
         sysNodeCount=3
         maxSysPods=30
