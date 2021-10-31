@@ -885,7 +885,8 @@
 
   - ## References
 
-    - Istio - https://istio.io/latest/docs/setup/getting-started/
-    - Linkerd - https://linkerd.io/2.11/getting-started/
-    - APIM Self Hosted - https://docs.microsoft.com/en-us/azure/api-management/self-hosted-gateway-overview
-    - Github Repo - 
+    - **Istio** - https://istio.io/latest/docs/setup/getting-started/
+    - **Linkerd** - https://linkerd.io/2.11/getting-started/
+    - **APIM Self Hosted** - https://docs.microsoft.com/en-us/azure/api-management/self-hosted-gateway-overview
+    - **Github Repo** - https://github.com/monojit18/ServiceMeshWorkshop
+
