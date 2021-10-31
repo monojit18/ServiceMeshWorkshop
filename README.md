@@ -16,7 +16,7 @@
 
 - ### AKS - High Level Architecture
 
-  
+  ![aks-hl](./Assets/aks-hl.png)
 
   
 
