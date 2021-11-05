@@ -16,8 +16,6 @@
 
   
 
-  ![aks-hl](./Assets/aks-ref-arch.png)
-
   
 
 - ### Understand ServiceMesh - *What it is?*
@@ -40,12 +38,19 @@
   - #### Benefits
 
     - Blue/Green Deployment
-
-    - Fault Injection
-
+  - Fault Injection
     - Multi Cluster Connectivity
+  - A/B Testing
+  
+- ### Service Mesh - Where is it Deployed?
 
-    - A/B Testing
+  ![aks-hl](./Assets/aks-ref-arch.png)
+
+  - Some Service Mesh can have its own Ingress Controller or Gateway - viz. *Istio*
+    - Istio works in both ways
+    - This workshop rather use Istio's own Gateway rather than requiring an existing one
+  - Some Service Mesh might be dependent on existing Ingress Gateway - viz. *Linkerd*
+    - Thsi workshop would use Linkerd with Nginx Ingress controller
 
 ## Purpose
 
@@ -227,6 +232,18 @@
 
       
 
+      - ##### Set CLI Variables for Istio
+
+        ```bash
+        primaryResourceGroup=$aksResourceGroup
+        primaryClusterName=$clusterName
+        secondaryResourceGroup="secondary-workshop-rg"
+        secondaryClusterName="secondary-mesh-cluster"
+        primaryAcrName=$acrName
+        helmPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/AKS/Helm"
+        istioPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/Istio"
+        ```
+        
       - ##### Configure AKS Cluster - Primary
 
         ```bash
@@ -240,18 +257,6 @@
         #Additional helpful commands
         #Switch context between multiple clusters
         kubectl config use-context <context>
-        ```
-
-      - ##### Set CLI Variables for Istio
-
-        ```bash
-        primaryResourceGroup=$aksResourceGroup
-        primaryClusterName=$clusterName
-        secondaryResourceGroup="secondary-workshop-rg"
-        secondaryClusterName="secondary-mesh-cluster"
-        primaryAcrName=$acrName
-        helmPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/AKS/Helm"
-        istioPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/Istio"
         ```
 
       - ##### Download Istio
@@ -286,8 +291,19 @@
       - ##### Install Istio CLI
 
         ```bash
+        #Install Istio CLI
         #Select Default Istio Profile settings
+        #Ingress Gateway with Public IP Address
         istioctl install --context=$CTX_CLUSTER1 --set profile=default -y
+        
+        #Install Istio with custom configurations
+        #Ingress Gateway with Privae IP Address
+        #Another Publicly exposed LoadBalancer Service(L7) would be needed to access this Private IP
+        istioctl install --context=$CTX_CLUSTER1 -f $istioPath/Components/values-primary.yaml -y
+        
+        #Following link describes - how to configure Application Gateway with AKS cluster
+        #This need to be used if Ingress Gateway is having Private IP
+        https://docs.microsoft.com/en-us/azure/application-gateway/configuration-http-settings 
         ```
 
       - ##### Configure Istio in Primary Cluster
@@ -295,9 +311,12 @@
         - ###### Inject Istio into Namespaces
 
           ```bash
-          #Inject Istio into Primary namespace of the cluster 
-          #This ensures sidecar container to be added for every dpeloyment in this namespace
+          #Inject Istio into primary namespace
+          #Ensures sidecar container to be added for every deployment in this namespace
           kubectl label namespace primary istio-injection=enabled --context=$CTX_CLUSTER1
+          
+          #Disable sidecar injection from primary namespace
+          #kubectl label namespace primary istio-injection=disabled --context=$CTX_CLUSTER1
           ```
 
         - ##### Install Addons
@@ -317,8 +336,8 @@
           #Bring job to foreground - fg [<job-number>]
           
           #Check Deployments within istio-system
-          #Istio Ingress gateway with public IP
-          kubectl get svc -A
+          #Istio Ingress gateway with public or private IP
+          kubectl get svc -n istio-system
           ```
 
         - ##### Deploy BookInfo App
@@ -336,10 +355,13 @@
           kubectl exec $podName -n primary -c ratings -- curl -sS productpage:9080/productpage | grep -o "<title>.*</title>"
           ```
 
+        - ##### Expose Microservices thru an Ingress Gateway
+
           ```bash
           #Need a Gateway to expose the service outside
           #Check Routing definitions
-          kubectl apply -f $istioPath/Examples/Gateways/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
+          #Replace <dns-name>
+          kubectl apply -f $istioPath/Examples/Networking/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
           
           #Get GATEWAY_URL
           kubectl get svc istio-ingressgateway -n istio-system
@@ -355,6 +377,20 @@
           curl http://$GATEWAY_URL/product
           ```
 
+        - ##### Expose Kiali dashboard service thru a Gateway
+
+          ```bash
+          #Need a Gateway to expose the Kiali service outside
+          #Check Routing definitions
+          #Replace <dns-name>
+          kubectl apply -f $istioPath/Examples/Networking/kiali-gateway.yaml -n istio-system --context=$CTX_CLUSTER1
+          
+          #Launch Kiali in the browser
+          http://$INGRESS_HOST:$INGRESS_PORT/
+          
+          #If used with Applicagtion Gateway then use appropriate Host header in Http Settings
+          ```
+
         - ##### Observability
 
           ![istio-metrics-graph](./Assets/istio-metrics-graph.png)
@@ -363,7 +399,7 @@
 
           ![istio-metrics-inbound](./Assets/istio-metrics-oob.png)
 
-          ###### 
+          
 
       - ##### Deploy more apps (Optional)
 
@@ -378,14 +414,17 @@
         ![ratings-web-flow2](./Assets/ratings-web-flow2.png)
 
         ```bash
-        #Create namespace
+        #Create aks-workshop-dev namespace
         kubectl create ns aks-workshop-dev --context=$CTX_CLUSTER1
         
-        #Inject Istio into namespace
-        #This ensures sidecar container to be added for every dpeloyment in this namespace
+        #Inject Istio into aks-workshop-dev namespace
+        #Ensures sidecar container to be added for every deployment in this namespace
         kubectl label namespace aks-workshop-dev istio-injection=enabled --context=$CTX_CLUSTER1
         
-        #Deploy backend DB as container
+        #Disable sidecar injection from aks-workshop-dev namespace
+        #kubectl label namespace aks-workshop-dev istio-injection=disabled --context=$CTX_CLUSTER1
+        
+        #Deploy backend Mongo DB as container
         kubectl create ns db --context=$CTX_CLUSTER1
         
         helm repo add bitnami https://charts.bitnami.com/bitnami
@@ -396,6 +435,8 @@
         --set controller.nodeSelector.agentpool=$sysNodePoolName \
         --set controller.defaultBackend.nodeSelector.agentpool=$sysNodePoolName
         
+        #Remove backend Mongo DB container
+        #helm uninstall ratingsdb
         
         #RatingsApi - Ratings API backend 
         
@@ -414,11 +455,11 @@
         helm install ratingsapi-chart -n aks-workshop-dev $helmPath/ratingsapi-chart/ -f $helmPath/ratingsapi-chart/values-dev.yaml
         helm upgrade ratingsapi-chart -n aks-workshop-dev $helmPath/ratingsapi-chart/ -f $helmPath/ratingsapi-chart/values-dev.yaml
         
+        #Remove RatinsgAPI app 
         #helm uninstall ratingsapi-chart -n aks-workshop-dev
         
         #RatingsWeb - Ratings App Frontend
         ===================================
-        
         #Clone/Fork/Download Souerce code
         https://github.com/monojit18/mslearn-aks-workshop-ratings-web.git
         
@@ -435,16 +476,9 @@
         
         #Need a Gateway to expose the service outside
         #Check Routing definitions
-        kubectl apply -f $istioPath/Examples/Gateways/ratings-gateway.yaml -n aks-workshop-dev --context=$CTX_CLUSTER1
+        kubectl apply -f $istioPath/Examples/Networking/ratingsweb-gateway.yaml -n aks-workshop-dev --context=$CTX_CLUSTER1
         
-        #Check Routing behaviour
-        #UnComment follwoing line in $istioPath/Examples/Gateways/primary-gateway.yaml
-        /*
-         # - uri:
-            #     prefix: /static
-        */
-        #This would make RatingsWeb app to fail
-        #Check Routing behaviour again
+        #If used with Applicagtion Gateway then use appropriate Host header in Http Settings
         ```
 
         
@@ -469,20 +503,21 @@
         kubectl get po -n primary --context=$CTX_CLUSTER1
         
         #Check Routing definitions
-        kubectl apply -f $istioPath/Examples/Gateways/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
-        #Destination Rule
-        kubectl apply -f $istioPath/Examples/Gateways/helloworld-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
+        kubectl apply -f $istioPath/Examples/Networking/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
         
-        #Check Routing behaviour
-        #Update Primary Gateway Routes - Change Traffic weight
+        #Destination Rule
+        kubectl apply -f $istioPath/Examples/Networking/helloworld-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
         
         kubectl apply -f $istioPath/Examples/HelloWorld/helloworld-app-v2.yaml -n primary --context=$CTX_CLUSTER1
         kubectl get po -n primary --context=$CTX_CLUSTER1
         
-        #Check Routing definitions
-        kubectl apply -f $istioPath/Examples/Gateways/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
+        #Check Routing behaviour
+        #UNCOMMENT: Test Traffic Shifting
+        #Update Primary Gateway Routes - Change Traffic weight
+        kubectl apply -f $istioPath/Examples/Networking/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
+        
         #Destination Rule
-        kubectl apply -f $istioPath/Examples/Gateways/helloworld-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
+        kubectl apply -f $istioPath/Examples/Networking/helloworld-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
         
         #Check Routing behaviour again
         ```
@@ -493,70 +528,76 @@
 
         ![istio-trafficplit](./Assets/istio-trafficplit-faultinjection.png)
 
+        
+
+        - ###### Introduce Fault
+
         ```yaml
-        apiVersion: networking.istio.io/v1alpha3
-        kind: Gateway
-        metadata:
-          name: ratingsweb-gateway  
-        spec:
-          selector:
-            istio: ingressgateway # use istio default controller
-          servers:
-          - port:
-              number: 80
-              name: http
-              protocol: HTTP
-            hosts:
-            - "*"
-        ---
         apiVersion: networking.istio.io/v1alpha3
         kind: VirtualService
         metadata:
-          name: ratingsweb-virtual-service  
+          name: ratingsfault-virtual-service
         spec:
           hosts:
-          - "*"
-          gateways:
-          - ratingsweb-gateway
+          - ratings
           http:
-          # - fault:
-          #     delay:
-          #       fixedDelay: 3s
-          #       percentage:
-          #         value: 100
-          #   route:
-          #   - destination:
-          #       host: ratingsweb-service
-          #       port:
-          #         number: 80  
-          - match:
-            - uri:
-                regex: /?(.*)  
+        #Inject Fault
+          - fault:
+        #Introduce Delay
+        #Product APIs would throw timeout error
+              delay:
+        #50% of the calls would be delayed by 7 seconds
+                percentage:
+                  value: 50.0
+        #Reduce delay to see change in behaviour of the app
+                fixedDelay: 7s
             route:
             - destination:
-                host: ratingsweb-service
-                port:
-                  number: 80
+                host: ratings
+                subset: v1
         ```
 
         ```bash
-        #Check Routing definitions
-        kubectl apply -f $istioPath/Examples/Gateways/ratings-gateway.yaml -n primary --context=$CTX_CLUSTER1
+        #Fault Injection
+        #Deploy Fault in Ratinsg API
+        kubectl apply -f $istioPath/Examples/Network/ratingsfault-virtual-service.yaml -n primary --context=$CTX_CLUSTER1
         
-        #UnComment Fault section
-        kubectl apply -f $istioPath/Examples/Gateways/ratings-gateway.yaml -n primary --context=$CTX_CLUSTER1
-        #Check Routing definitions again
+        #Check Comments in the file
+        #Introduce Delay
+        #Check Routing behaviour
         ```
 
+        - ###### Introduce Fix
+
+        ```bash
+        #Introduce Fix
+        kubectl apply -f $istioPath/Examples/Networking/reviewsfix-virtual-service.yaml -n primary --context=$CTX_CLUSTER1
         
+        #Check Comments in the file
+        #Check Routing behaviour
+        ```
 
-      - ###### Distributed Tracing
-
-        ![istio-metrics-trace1](./Assets/istio-metrics-trace1.png)
-
-        ![istio-metrics-trace1](./Assets/istio-metrics-trace2.png)
-
-        
+        ```yaml
+        apiVersion: networking.istio.io/v1alpha3
+        kind: VirtualService
+        metadata:
+          name: reviewsfix-virtual-service
+        spec:
+          hosts:
+          - reviews
+          http:    
+          - route:
+            - destination:
+                host: reviews
+                subset: v1
+              weight: 50
+        #Route 50% of the Traffic to v3
+        #v3 has the fix with a timeout value of 2.5 seconds
+            - destination:
+                host: reviews
+                subset: v3
+              weight: 50
+        ```
 
       - ###### Blue/Green
 
@@ -568,25 +609,54 @@
         kubectl apply -f $istioPath/Examples/BlueGreen/podinfo-blue.yaml -n primary --context=$CTX_CLUSTER1
         
         #Check Routing definitions
-        kubectl apply -f $istioPath/Examples/Gateways/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
+        kubectl apply -f $istioPath/Examples/Networking/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
+        
         #Destination Rule
-        kubectl apply -f $istioPath/Examples/Gateways/podinfo-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
+        kubectl apply -f $istioPath/Examples/Networking/podinfo-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
         
         #Deploy PodInfo green
         kubectl apply -f $istioPath/Examples/BlueGreen/podinfo-green.yaml -n primary --context=$CTX_CLUSTER1
         
+        #Check Routing behaviour
+        #UNCOMMENT: Test Blue/Green
         #Update Primary Gateway Routes - Change Traffic weight
-        #Check Routing definitions
-        kubectl apply -f $istioPath/Examples/Gateways/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
+        kubectl apply -f $istioPath/Examples/Networking/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
+        
         #Destination Rule
-        kubectl apply -f $istioPath/Examples/Gateways/podinfo-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
+        kubectl apply -f $istioPath/Examples/Networking/podinfo-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
         
         #Check Routing behaviour again
         ```
 
-        
-
       - ###### Circuit Breaker
+
+        ```bash
+        #Circuit Breaker
+        #Deploy HttpBin App
+        kubectl apply -f $istioPath/Examples/HttpBin/httpbin.yaml -n primary --context=$CTX_CLUSTER1
+        kubectl apply -f $istioPath/Examples/Networking/httpbin-gateway.yaml -n primary --context=$CTX_CLUSTER1
+        
+        #Deploy HttpBin Destination Rule
+        kubectl apply -f $istioPath/Examples/Networking/httpbin-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
+        
+        #Check Routing behaviour
+        #UNCOMMENT: Test Circuit Breaking
+        kubectl apply -f $istioPath/Examples/Networking/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
+        
+        #Generate Load - e.g. JMeter or Fortio or any other Laod Testing client
+        
+        #Deploy Fortio client
+        kubectl apply -f $istioPath/Examples/HttpBin/sample-client/fortio-deploy.yaml -n primary --context=$CTX_CLUSTER1
+        
+        #Make calls from Fortio client
+        export FORTIO_POD=$(kubectl get pods -l app=fortio -o 'jsonpath={.items[0].metadata.name}')
+        kubectl exec "$FORTIO_POD" -c fortio -- /usr/bin/fortio curl -quiet http://httpbin:8000/get
+        
+        #Check Routing behaviour
+        #Observer many calls being failed and circuit is broken and joined automatically
+        #Change parameters in the $istioPath/Examples/Networking/httpbin-destination-rule.yaml file
+        #Play around and see the chnage in the behaviour
+        ```
 
         ```yaml
         apiVersion: networking.istio.io/v1alpha3
@@ -610,30 +680,15 @@
         EOF
         ```
 
-        ```bash
-        #Circuit Breaker
-        #Deploy HttpBin App
-        kubectl apply -f $istioPath/Examples/HttpBin/httpbin.yaml -n primary --context=$CTX_CLUSTER1
-        kubectl apply -f $istioPath/Examples/Gateways/httpbin-gateway.yaml -n primary --context=$CTX_CLUSTER1
-        
-        #Deploy HttpBin Destination Rule
-        kubectl apply -f $istioPath/Examples/Gateways/httpbin-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
-        
-        #Deploy Fortio client
-        kubectl apply -f $istioPath/Examples/HttpBin/sample-client/fortio-deploy.yaml -n primary --context=$CTX_CLUSTER1
-        
-        #Make class from Fortio client
-        export FORTIO_POD=$(kubectl get pods -l app=fortio -o 'jsonpath={.items[0].metadata.name}')
-        kubectl exec "$FORTIO_POD" -c fortio -- /usr/bin/fortio curl -quiet http://httpbin:8000/get
-        
-        #Check Routing behaviour
-        ```
+      - ###### Distributed Tracing
+
+        ![istio-metrics-trace1](./Assets/istio-metrics-trace1.png)
+
+        ![istio-metrics-trace1](./Assets/istio-metrics-trace2.png)
 
         
 
       - ###### Service Mirroring
-
-        
 
         ![k8s-mirroring](./Assets/k8s-mirroring.png)
 
@@ -650,11 +705,12 @@
         - ###### Create and Configure Secondary Cluster
 
           ```bash
+          #Service Mirroring or Shadowing
           #Create Secondary Cluster - CLI or Portal
           export CTX_CLUSTER2=secondary
           
           #Connect to Public AKS Cluster with Primary Context
-          az aks get-credentials -g $secondaryResourceGroup -n $secondaryClusterName --context $CTX_CLUSTER2
+          az aks get-credentials -g $primaryResourceGroup -n $secondaryClusterName --context $CTX_CLUSTER2
           
           kubectl config use-context $CTX_CLUSTER2
           
@@ -665,11 +721,17 @@
           kubectl create namespace secondary --context $CTX_CLUSTER2
           
           #Install Istio CLI
-          ##Select Default Istio Profile settings
+          #Select Default Istio Profile settings
+          #Ingress Gateway with Public IP Address
           istioctl install --context=$CTX_CLUSTER2 --set profile=default -y
           
+          #Install Istio with custom configurations
+          #Ingress Gateway with Privae IP Address
+          #Another Publicly exposed LoadBalancer Service(L7) would be needed to access this Private IP
+          istioctl install --context=$CTX_CLUSTER2 -f $istioPath/Components/values-secondary.yaml -y
+          
           #Inject Istio into Secondary namespace of the cluster 
-          #This ensures sidecar container to be added for every dpeloyment in this namespace
+          #This ensures sidecar container to be added for every deployment in this namespace
           kubectl label namespace secondary istio-injection=enabled --context=$CTX_CLUSTER2
           
           #Install Istio Addons
@@ -687,8 +749,13 @@
           kubectl apply -f $istioPath/Examples/HelloWorld/helloworld-app-v2.yaml -n secondary --context=$CTX_CLUSTER2
           kubectl get po -n secondary --context=$CTX_CLUSTER2
           
-          kubectl apply -f $istioPath/Examples/Gateways/helloworld-v2-gateway.yaml -n secondary --context=$CTX_CLUSTER2
-          kubectl apply -f $istioPath/Examples/Gateways/helloworld-v2-destination-rule.yaml -n secondary --context=$CTX_CLUSTER2
+          #Need a Gateway to expose the service outside
+          #Check Routing definitions
+          #Replace <dns-name>
+          kubectl apply -f $istioPath/Examples/Networking/secondary-gateway.yaml -n secondary --context=$CTX_CLUSTER2
+          
+          #Destination Rule
+          kubectl apply -f $istioPath/Examples/Networking/helloworld-v2-destination-rule.yaml -n secondary --context=$CTX_CLUSTER2
           
           kubectl get svc -n secondary --context=$CTX_CLUSTER2
           kubectl describe svc -n secondary --context=$CTX_CLUSTER2
@@ -702,29 +769,39 @@
           kubectl config use-context $CTX_CLUSTER1
           
           #Check Routing definitions
-          kubectl apply -f $istioPath/Examples/Gateways/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
+          kubectl apply -f $istioPath/Examples/Networking/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
           
           #Deploy components so that Mirroring can work
-          kubectl apply -f $istioPath/Examples/Gateways/helloworld-serviceentry.yaml -n primary --context=$CTX_CLUSTER1
-          kubectl apply -f $istioPath/Examples/Gateways/helloworld-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
+          #Replace <dns-name>
+          kubectl apply -f $istioPath/Examples/Networking/primary-serviceentry.yaml -n primary --context=$CTX_CLUSTER1
+          
+          #Destination Rule
+          #Replace <dns-name>
+          kubectl apply -f $istioPath/Examples/Networking/helloworld-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
           
           kubectl get svc -n primary --context=$CTX_CLUSTER1
           kubectl describe svc -n primary --context=$CTX_CLUSTER1
           kubectl get svc -A --context=$CTX_CLUSTER1
+          
+          #Call helloworld-v1
+          #Observe that all calls being replicated to helloworld-v2 of secondary cluster
           ```
 
-        - ###### CleanUp
+      - ###### CleanUP
 
-          ```bash
-          #Uninstall Istio setup
-          istioctl x uninstall --set profile=default --purge --context=$CTX_CLUSTER1
-          kubectl delete namespace istio-system --context=$CTX_CLUSTER1
-          
-          istioctl x uninstall --set profile=default --purge --context=$CTX_CLUSTER2
-          kubectl delete namespace istio-system --context=$CTX_CLUSTER2
-          ```
+        ```bash
+        #Cleanup
+        
+        #Uninstall Istio setup - primary cluster
+        istioctl x uninstall --set profile=default --purge --context=$CTX_CLUSTER1
+        kubectl delete namespace istio-system --context=$CTX_CLUSTER1
+        
+        #Uninstall Istio setup - secondary cluster
+        istioctl x uninstall --set profile=default --purge --context=$CTX_CLUSTER2
+        kubectl delete namespace istio-system --context=$CTX_CLUSTER2
+        ```
 
-          
+        
 
     - #### Linkerd
 
@@ -738,15 +815,25 @@
         linkerdResourceGroup="secondary-workshop-rg"
         linkerdClusterName="secondary-mesh-cluster"
         linkerdAcrName="scdmeshacr"
-        $linkerdIngressName="linkerd-ing"
-        $linkerdIngressNSName="$linkerdIngressName-ns"
-        $linkerdIngressDeployName=""
+        linkerdIngressName="linkerd-ing"
+        linkerdIngressNSName="$linkerdIngressName-ns"
+        linkerdIngressDeployName=""
+        linkerdSysNodePoolName="agentpool"
         helmPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/AKS/Helm"
-        $linkerdPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/Linkerd"
+        linkerdPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/Linkerd"
         ```
-
+      
+      - ##### Connect to Secondary Cluster
+      
+        ```bash
+        #Connect to Secondary Cluster - CLI or Portal
+        export CTX_CLUSTER2=secondary
+        
+        kubectl config use-context $CTX_CLUSTER2
+        ```
+      
       - ##### Install Nginx Ingress
-
+      
         ```bash
         #Install Nginx Ingress Controller
         #Create Ingress Namespace
@@ -757,25 +844,31 @@
         helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
         helm repo update
         
-        #Install Ingress controller
+        #Install Nginx Ingress controller
         helm install $linkerdIngressName ingress-nginx/ingress-nginx --namespace $linkerdIngressNSName \
+        --set controller.nodeSelector.agentpool=$linkerdSysNodePoolName \
+        --set controller.defaultBackend.nodeSelector.agentpool=$linkerdSysNodePoolName \
+        
+        #UNCOMMENT: Install Nginx Ingress controller as an Internal LoadBalancer - Private IP Address
+        #IMPORTANT: 
         #--set controller.service.loadBalancerIP=$backendIpAddress \
-        #--set controller.service.annotations.'service\.beta\.kubernetes\.io/azure-load-balancer-internal-subnet'=$aksIngressSubnetName \
-        --set controller.nodeSelector.agentpool=$sysNodePoolName \
-        --set controller.defaultBackend.nodeSelector.agentpool=$sysNodePoolName
+        #--set controller.service.annotations.'service\.beta\.kubernetes\.io/azure-load-balancer-internal-subnet'=$aksIngressSubnetName
         ```
-
+      
       - ##### Deploy K8s Ingress
-
+      
         ```bash
         helm create ingress-chart
         
         helm install  ingress-chart -n secondary $helmPath/ingress-chart/ -f $helmPath/ingress-chart/values-dev.yaml
         helm upgrade  ingress-chart -n secondary $helmPath/ingress-chart/ -f $helmPath/ingress-chart/values-dev.yaml
+        
+        #UnInstall ingress
+        #helm uninstall ingress-chart -n secondary
         ```
-
+      
       - ##### Download Linkerd
-
+      
         ```bash
         export LINKERD2_VERSION=stable-2.10.0
         
@@ -809,12 +902,13 @@
         Inject Linkerd into Namespaces
         ================================
         kubectl get deploy -n secondary -o yaml | linkerd inject - | kubectl apply -f -
+        linkerd viz dashboard&
         ```
-
+      
       - ##### Observability
-
+      
         - ###### View Basic Metrics
-
+      
           ![linkerd-grafana1](./Assets/linkerd-grafana1.png)
 
           ![linkerd-grafana2](./Assets/linkerd-grafana2.png)
@@ -835,15 +929,15 @@
         ```
 
         ![linkerd-traffic-split](./Assets/linkerd-traffic-split.png)
-
+      
         
-
+      
       - ###### Fault Injection
-
+      
         ![istio-trafficplit](./Assets/istio-trafficplit-faultinjection.png)
-
+      
         
-
+      
         ```bash
         kubectl -n emojivoto set env --all deploy OC_AGENT_HOST=collector.linkerd-jaeger:55678
         for ((i=1;i<=100;i++)); do   curl -kubectl "https://emojivoto.domain.com/api/list"; done
@@ -863,25 +957,25 @@
         --set controller.nodeSelector.agentpool=agentpool \
         --set controller.defaultBackend.nodeSelector.agentpool=agentpool
         ```
-
+      
         
-
+      
       - ###### Circuit Breaking
-
+      
         ```bash
         #Left as an Exercise
         ```
-
+      
         
-
+      
       - ###### Distributed Tracing
-
+      
         ![linkerd-jaeger](./Assets/linkerd-jaeger.png)
         
         
-
+      
       - ###### Service Mirroring
-
+      
         ![linkerd-mirroring](./Assets/linkerd-mirroring.png)
         
         ```bash
