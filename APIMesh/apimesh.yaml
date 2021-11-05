@@ -60,7 +60,9 @@ metadata:
     service.beta.kubernetes.io/azure-load-balancer-internal: "true"
     service.beta.kubernetes.io/azure-load-balancer-internal-subnet: "secondary-ingress-subnet"
 spec:
+#Define type as LoadBalancer
   type: LoadBalancer
+#Assign a fixed Private IP  
   loadBalancerIP: 31.0.5.100
   ports:
   - name: http
