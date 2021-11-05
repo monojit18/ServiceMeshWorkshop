@@ -6,11 +6,16 @@ spec:
   hosts:
   - ratings
   http:
+#Inject Fault
   - fault:
+#Introduce Delay
+#Product APIs would throw timeout error
       delay:
+#50% of the calls would be delayed by 7 seconds
         percentage:
           value: 50.0
-        fixedDelay: 7s    
+#Reduce delay to see change in behaviour of the app
+        fixedDelay: 7s
     route:
     - destination:
         host: ratings
