@@ -564,6 +564,12 @@
 
       
 
+      ![istio-trafficplit](./Assets/istio-fault.png)
+
+      
+
+      
+
       - ###### Introduce Fault
 
       ```yaml
