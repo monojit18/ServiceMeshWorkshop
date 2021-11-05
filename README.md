@@ -568,8 +568,6 @@
 
       
 
-      
-
       - ###### Introduce Fault
 
       ```yaml
