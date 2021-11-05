@@ -975,6 +975,7 @@
         #Display Linkerd dashboard as a background service
         linkerd viz dashboard&
         
+        #Split Traffic
         kubectl apply -f $linkerdPath/Examples/EmojiVoto/emojivoto-traffic-split.yaml
         
         #UNCOMMENT: Test Traffic Shifting
@@ -985,9 +986,62 @@
         
         ```
 
+        - ###### Example - Split Traffic
+
+          ```yaml
+          apiVersion: split.smi-spec.io/v1alpha1
+          kind: TrafficSplit
+          metadata:
+            name: emojivoto-split
+            namespace: emojivoto
+          spec:  
+            service: web-svc
+            backends:
+            - service: web-svc
+              weight: 100
+            
+          #UNCOMMENT: Test Traffic Shifting
+            # - service: web-svc-v12
+            #   weight: 0
+          ```
+
         ![linkerd-traffic-split](./Assets/linkerd-traffic-split.png)
 
         
+
+      - ##### Blue/Green
+
+        ```bash
+        k create ns test
+        
+        kubectl config set-context --current --namespace=test
+        
+        #Deploy frontend-blue app
+        kubectl apply -f $linkerdPath/Examples/BlueGreen/frontend-blue.yaml
+        
+        #Deploy frontend-green app
+        kubectl apply -f $linkerdPath/Examples/BlueGreen/frontend-green.yaml
+        
+        #Deploy Ingress 
+        kubectl apply -f $linkerdPath/Examples/BlueGreen/frontend-ingress.yaml
+        
+        #Check Comments
+        
+        #Inject Linkerd into test namespace
+        kubectl get deploy -n test -o yaml | linkerd inject - | kubectl apply -f -
+        
+        #Display Linkerd dashboard as a background service
+        linkerd viz dashboard&
+        
+        #Split Traffic
+        kubectl apply -f $linkerdPath/Examples/BlueGreen/frontend-traffic-split.yaml
+        
+        #UNCOMMENT: Test Traffic Shifting
+        #Modify Traffic weight
+        kubectl apply -f $linkerdPath/Examples/EmojiVoto/frontend-traffic-split.yaml
+        
+        #Check Routing behaviour
+        ```
 
       - ###### Deploy more apps - Ratings app (Optional)
 
@@ -1113,7 +1167,15 @@
           app: apimesh
       ```
 
-    -  
+    - **Define APIs behind APIM; running withon AKS cluster**
+
+      ![istio-mirroring-2](./Assets/apimesh-1.png)
+
+      ![istio-mirroring-2](./Assets/apimesh-2.png)
+
+      ![istio-mirroring-2](./Assets/apimesh-3.png)
+
+      
 
 - ## What Next
 
