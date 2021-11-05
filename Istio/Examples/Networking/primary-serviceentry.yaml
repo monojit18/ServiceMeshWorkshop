@@ -1,10 +1,10 @@
 apiVersion: networking.istio.io/v1alpha3
 kind: ServiceEntry
 metadata:
-  name: helloworld-serviceentry  
+  name: primary-serviceentry  
 spec:
   hosts:
-  - 20.102.34.67.nip.io
+  - "seocndsry-mesh.<dns-name>"
   ports:
   - number: 80
     name: http

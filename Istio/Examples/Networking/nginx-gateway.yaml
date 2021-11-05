@@ -1,7 +1,7 @@
 apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
-  name: helloworld-gateway
+  name: nginx-gateway
 spec:
   selector:
     istio: ingressgateway # use istio default controller
@@ -10,30 +10,29 @@ spec:
       number: 80
       name: http
       protocol: HTTP
-    hosts:
-    - "*"
+    hosts:    
+    - "smoke-mesh.internal.wkshpdev.com"
 ---
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:
-  name: helloworld
+  name: nginx-virtual-service
 spec:
   hosts:
-  - "*"
+  #Ingress Gateway DNS host of Primary Cluster    
+  - "smoke-mesh.<dns-name>"
   gateways:
-  - helloworld-gateway
-  http:
+  - nginx-gateway
+  http:                  
   - match:
     - uri:
-        exact: /hello
-    # - authority:
-    #     prefix: "helloworld"
-    #   port: 80
+        prefix: /nginx
+    rewrite:
+      uri: /
     route:
     - destination:
-        host: helloworld
-        subset: v2
+        host: nginx-svc        
         port:
-          number: 5000
-      weight: 100  
-    
+          number: 80
+         
+  

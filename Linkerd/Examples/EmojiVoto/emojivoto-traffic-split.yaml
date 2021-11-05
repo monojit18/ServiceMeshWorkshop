@@ -7,6 +7,8 @@ spec:
   service: web-svc
   backends:
   - service: web-svc
-    weight: 900m
-  - service: web-svc-v12
-    weight: 100m
+    weight: 100
+  
+#UNCOMMENT: Test Traffic Shifting
+  # - service: web-svc-v12
+  #   weight: 0

@@ -11,9 +11,9 @@ ingress:
       proxy_set_header l5d-dst-override $service_name.$namespace.svc.cluster.local:$service_port;
       grpc_set_header l5d-dst-override $service_name.$namespace.svc.cluster.local:$service_port;
   hosts:
-  - name: mesh.internal.wkshpdev.com
+  - name: 20.85.194.5.nip.io
     paths:    
     - path: /?(.*)
-      pathType: ImplementationSpecific
+      pathType: Prefix
       service: ratingsweb-service
       port: 80    

@@ -9,5 +9,6 @@ spec:
         k8s:
           serviceAnnotations:
             service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+            service.beta.kubernetes.io/azure-load-balancer-internal-subnet: "<primary-ingress-subnet-name>"
           service:
-            loadBalancerIP: 17.0.0.100
+            loadBalancerIP: <loadBalancerIP-from-ingress-subnet>

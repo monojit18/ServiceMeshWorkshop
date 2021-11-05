@@ -1,16 +1,16 @@
 apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
 metadata:
-  name: helloworld-dest-rule
+  name: podinfo-dest-rule
 spec:
-  host: helloworld
+  host: podinfo
   trafficPolicy:
     loadBalancer:
       simple: ROUND_ROBIN
   subsets:
-  - name: v1
+  - name: blue
     labels:
-      version: v1
-  - name: v2
+      version: blue
+  - name: green
     labels:
-      version: v2
+      version: green

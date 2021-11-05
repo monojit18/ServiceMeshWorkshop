@@ -8,14 +8,14 @@ spec:
   selector:
     matchLabels:
       app: podinfo
-      version: v2
+      version: green
   template:
     metadata:
       annotations:
         linkerd.io/inject: enabled
       labels:
         app: podinfo
-        version: v2
+        version: green
     spec:
       containers:
       - name: podinfod

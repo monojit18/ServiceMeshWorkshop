@@ -11,7 +11,7 @@ spec:
       name: http
       protocol: HTTP
     hosts:
-    - "*"
+    - "ratings-mesh.internal.wkshpdev.com"
 ---
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
@@ -19,20 +19,10 @@ metadata:
   name: ratingsweb-virtual-service  
 spec:
   hosts:
-  - "*"
+  - "ratings-mesh.<dsns-name>"
   gateways:
   - ratingsweb-gateway
   http:
-  # - fault:
-  #     delay:
-  #       fixedDelay: 3s
-  #       percentage:
-  #         value: 100
-  #   route:
-  #   - destination:
-  #       host: ratingsweb-service
-  #       port:
-  #         number: 80  
   - match:
     - uri:
         regex: /?(.*)  

@@ -7,13 +7,15 @@ metadata:
     kubernetes.io/ingress.class: nginx    
     nginx.ingress.kubernetes.io/enable-cors: "true"    
     nginx.ingress.kubernetes.io/rewrite-target: /$1
+
+#IMPORTANT: Ensures that Linkerd and Nginx Ingress can work properly    
     nginx.ingress.kubernetes.io/service-upstream: "true"
     nginx.ingress.kubernetes.io/configuration-snippet: |
       proxy_set_header l5d-dst-override $service_name.$namespace.svc.cluster.local:$service_port;
       grpc_set_header l5d-dst-override $service_name.$namespace.svc.cluster.local:$service_port;
 spec:
   rules:
-  - host: emojivoto.internal.wkshpdev.com
+  - host: <dns-name>
     http:
       paths:
       - path: /?(.*)
@@ -23,10 +25,3 @@ spec:
             name: frontend-blue
             port:
               number: 8080
-      - path: /?(.*)
-        pathType: Prefix
-        backend:
-          service:
-            name: frontend-green
-            port:
-              number: 8080   

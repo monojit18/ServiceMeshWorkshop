@@ -11,7 +11,9 @@ spec:
       name: http
       protocol: HTTP
     hosts:
-    - "*"
+    #Ingress Gateway DNS host of Primary Cluster
+    - "primary-mesh.<dns-name>"
+
 ---
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
@@ -19,28 +21,31 @@ metadata:
   name: primary-virtual-service
 spec:
   hosts:
-  - "*"
+  #Ingress Gateway DNS host of Primary Cluster
+  - "primary-mesh.<dns-name>"
   gateways:
   - primary-gateway
   http:
-  # - match:
-  #   - uri:
-  #       exact: /podinfo
-  #   rewrite:
-  #     uri: /
-  #   route:
-  #   - destination:
-  #       host: podinfo   
-  #       subset: v1     
-  #       port:
-  #         number: 9898 
-  #     weight: 100
-  #   - destination:
-  #       host: podinfo  
-  #       subset: v2 
-  #       port:
-  #         number: 9898 
-  #     weight: 0
+  - match:
+    - uri:
+        prefix: /podinfo
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        host: podinfo   
+        subset: blue
+        port:
+          number: 9898 
+      weight: 100
+      
+#UNCOMMENT: Test Blue/Green
+    # - destination:
+    #     host: podinfo  
+    #     subset: green 
+    #     port:
+    #       number: 9898 
+    #   weight: 0
   - match:  
     - uri:
         exact: /hello
@@ -51,18 +56,36 @@ spec:
         port:
           number: 5000   
       weight: 100
+
+#UNCOMMENT: Test Traffic Shifting
     # - destination:
     #     host: helloworld
     #     subset: v2
     #     port:
     #       number: 5000   
-    #   weight: 50
+    #   weight: 0
+
+#UNCOMMENT: Test Traffic Mirroring Or Shadowing
     # mirror:
-    #   host: 20.102.34.67.nip.io
+    #   host: "seocndsry-mesh.<dns-name>"
     #   port:
     #     number: 80
     # mirrorPercentage:
-    #   value: 50
+    #   value: 100
+
+#UNCOMMENT: Test Circuit Breaking
+  # - match:
+  #   - uri:
+  #       prefix: /httpbin
+  #   rewrite:
+  #     uri: / 
+  #   route:
+  #   - destination:
+  #       host: httpbin
+  #       port:
+  #         number: 8000
+
+#Bookinfo service
   - match:
     - uri:
         exact: /product
@@ -74,8 +97,8 @@ spec:
         port:
           number: 9080
   - match:  
-    # - uri:
-    #     prefix: /static
+    - uri:
+        prefix: /static
     - uri:
         exact: /login
     - uri:

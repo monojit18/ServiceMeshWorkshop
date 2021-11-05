@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: apimesh-env
+data:
+  config.service.endpoint: "https://apim-workshop-loadtest.management.azure-api.net/subscriptions/6bdcc705-8db6-4029-953a-e749070e6db6/resourceGroups/apim-workshop-rg/providers/Microsoft.ApiManagement/service/apim-workshop-loadtest?api-version=2021-01-01-preview"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apimesh
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: apimesh
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 25%
+  template:
+    metadata:
+      labels:
+        app: apimesh
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+      - name: apimesh
+        image: mcr.microsoft.com/azure-api-management/gateway:latest
+        ports:
+        - name: http
+          containerPort: 8080
+        - name: https
+          containerPort: 8081
+        readinessProbe:
+          httpGet:
+            path: /internal-status-0123456789abcdef
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 0
+          periodSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        env:
+        - name: config.service.auth
+          valueFrom:
+            secretKeyRef:
+              name: apimesh-token
+              key: value
+        envFrom:
+        - configMapRef:
+            name: apimesh-env
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: apimesh
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+    service.beta.kubernetes.io/azure-load-balancer-internal-subnet: "secondary-ingress-subnet"
+spec:
+  type: LoadBalancer
+  loadBalancerIP: 31.0.5.100
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  - name: https
+    port: 443
+    targetPort: 8081
+  selector:
+    app: apimesh

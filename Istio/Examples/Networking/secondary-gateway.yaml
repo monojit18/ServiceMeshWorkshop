@@ -1,0 +1,51 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: secondary-gateway
+spec:
+  selector:
+    istio: ingressgateway # use istio default controller
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: secondary-virtual-service
+spec:
+  hosts:
+  - "seocndsry-mesh.<dns-name>"
+  
+  #IMPORTANT: Shadow Suffix - All Mirrored service is sent from primary cluster
+  # with a Suffix called - Shadow
+  - "seocndsry-mesh.<dns-name>-shadow"
+  gateways:
+  - secondary-gateway
+  http:
+#Health Check service (optional)
+  - match:
+    - uri:
+        prefix: /nginx
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        host: nginx-svc        
+        port:
+          number: 80
+#Mirored service
+  - match:
+    - uri:
+        prefix: /hello
+    route:
+    - destination:
+        host: helloworld
+        subset: v2
+        port:
+          number: 5000      
