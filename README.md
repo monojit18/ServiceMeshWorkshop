@@ -42,9 +42,9 @@
   - #### Benefits
 
     - Blue/Green Deployment
-  - Fault Injection
+    - Fault Injection
     - Multi Cluster Connectivity
-  - A/B Testing
+    - A/B Testing
   
 - ### Service Mesh - Where is it Deployed?
 
@@ -840,272 +840,266 @@
         #Call helloworld-v1
         #Observe that all calls being replicated to helloworld-v2 of secondary cluster
         ```
-
-
-      ###### CleanUP
-
-      ```bash
-      #Cleanup
+        
+      - ###### CleanUP
       
-      #Uninstall Istio setup - primary cluster
-      istioctl x uninstall --set profile=default --purge --context=$CTX_CLUSTER1
-      kubectl delete namespace istio-system --context=$CTX_CLUSTER1
-      
-      #Uninstall Istio setup - secondary cluster
-      istioctl x uninstall --set profile=default --purge --context=$CTX_CLUSTER2
-      kubectl delete namespace istio-system --context=$CTX_CLUSTER2
-      ```
-
-      
-
-    - #### Linkerd
-
-      ![istio-arch](./Assets/linkerd-arch.png)
-
-      
-
-      - ##### Define CLI Variables
-
         ```bash
-        linkerdResourceGroup="secondary-workshop-rg"
-        linkerdClusterName="secondary-mesh-cluster"
-        linkerdAcrName="scdmeshacr"
-        linkerdIngressName="linkerd-ing"
-        linkerdIngressNSName="$linkerdIngressName-ns"
-        linkerdIngressDeployName=""
-        linkerdSysNodePoolName="agentpool"
-        helmPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/AKS/Helm"
-        linkerdPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/Linkerd"
-        ```
-
-      - ##### Connect to Secondary Cluster
-
-        ```bash
-        #Connect to Secondary Cluster - CLI or Portal
-        export CTX_CLUSTER2=secondary
-        
-        kubectl config use-context $CTX_CLUSTER2
-        ```
-
-      - ##### Install Nginx Ingress
-
-        ```bash
-        #Install Nginx Ingress Controller
-        #Create Ingress Namespace
-        kubectl create namespace $linkerdIngressNSName
-        kubectl label namespace $linkerdIngressNSName name=$linkerdIngressNSName
-        
-        #Install nginx using Helm
-        helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-        helm repo update
-        
-        #Install Nginx Ingress controller
-        helm install $linkerdIngressName ingress-nginx/ingress-nginx --namespace $linkerdIngressNSName \
-        --set controller.nodeSelector.agentpool=$linkerdSysNodePoolName \
-        --set controller.defaultBackend.nodeSelector.agentpool=$linkerdSysNodePoolName \
-        
-        #UNCOMMENT: Install Nginx Ingress controller as an Internal LoadBalancer - Private IP Address
-        #IMPORTANT: 
-        #--set controller.service.loadBalancerIP=$backendIpAddress \
-        #--set controller.service.annotations.'service\.beta\.kubernetes\.io/azure-load-balancer-internal-subnet'=$aksIngressSubnetName
-        ```
-
-      - ##### Deploy K8s Ingress
-
-        ```bash
-        helm create ingress-chart
-        
-        helm install  ingress-chart -n secondary $helmPath/ingress-chart/ -f $helmPath/ingress-chart/values-dev.yaml
-        helm upgrade  ingress-chart -n secondary $helmPath/ingress-chart/ -f $helmPath/ingress-chart/values-dev.yaml
-        
-        #UnInstall ingress
-        #helm uninstall ingress-chart -n secondary
-        ```
-
-      - ##### Download Linkerd
-
-        ```bash
-        export LINKERD2_VERSION=stable-2.10.0
-        
-        curl -sL https://run.linkerd.io/install | sh
-        linkerd check --pre
-        linkerd version
-        
-        linkerd install  | kubectl apply -f -
-        linkerd check
-        
-        Install Viz for Linkerd
-        =========================
-        linkerd viz install | kubectl apply -f -
-        linkerd check
-        linkerd viz dashboard&
-        
-        Install Jaeger for Linkerd
-        ===========================
-        linkerd jaeger install | kubectl apply -f -
-        linkerd jaeger check
-        linkerd jaeger dashboard&
-        ```
-
-      - ##### Inject Linkerd
-
-        ```bash
-        Inject Linkerd into Ingress Cntroller
-        =======================================
-        kubectl -n $linkerdIngressNSName get deploy/$linkerdIngressDeployName -o yaml | linkerd inject --ingress - | kubectl apply -f -
-        
-        Inject Linkerd into Namespaces
-        ================================
-        kubectl get deploy -n secondary -o yaml | linkerd inject - | kubectl apply -f -
-        linkerd viz dashboard&
-        ```
-
-      - ##### Traffic Splitting
-
-        ![istio-trafficplit](./Assets/istio-trafficplit.png)
-
-        ```bash
-        k create ns emojivoto
-        
-        kubectl config set-context --current --namespace=emojivoto
-        
-        #Deploy Ingress 
-        kubectl apply -f $linkerdPath/Examples/EmojiVoto/emojivoto-ingress.yaml 
-        kubectl apply -f $linkerdPath/Examples/EmojiVoto/emojivoto.yaml
-        
-        #Inject Linkerd into emojivoto namespace
-        kubectl get deploy -n emojivoto -o yaml | linkerd inject - | kubectl apply -f -
-        
-        #Display Linkerd dashboard as a background service
-        linkerd viz dashboard&
-        
-        #Split Traffic
-        kubectl apply -f $linkerdPath/Examples/EmojiVoto/emojivoto-traffic-split.yaml
-        
-        #UNCOMMENT: Test Traffic Shifting
-        #Modify Traffic weight
-        kubectl apply -f $linkerdPath/Examples/EmojiVoto/emojivoto-traffic-split.yaml
-        
-        #Check Routing behaviour
-        
-        ```
-
-        - ###### Example - Split Traffic
-
-          ```yaml
-          apiVersion: split.smi-spec.io/v1alpha1
-          kind: TrafficSplit
-          metadata:
-            name: emojivoto-split
-            namespace: emojivoto
-          spec:  
-            service: web-svc
-            backends:
-            - service: web-svc
-              weight: 100
-            
-          #UNCOMMENT: Test Traffic Shifting
-            # - service: web-svc-v12
-            #   weight: 0
-          ```
-
-        ![linkerd-traffic-split](./Assets/linkerd-traffic-split.png)
-
-        
-
-      - ##### Blue/Green
-
-        ```bash
-        k create ns test
-        
-        kubectl config set-context --current --namespace=test
-        
-        #Deploy frontend-blue app
-        kubectl apply -f $linkerdPath/Examples/BlueGreen/frontend-blue.yaml
-        
-        #Deploy frontend-green app
-        kubectl apply -f $linkerdPath/Examples/BlueGreen/frontend-green.yaml
-        
-        #Deploy Ingress 
-        kubectl apply -f $linkerdPath/Examples/BlueGreen/frontend-ingress.yaml
-        
-        #Check Comments
-        
-        #Inject Linkerd into test namespace
-        kubectl get deploy -n test -o yaml | linkerd inject - | kubectl apply -f -
-        
-        #Display Linkerd dashboard as a background service
-        linkerd viz dashboard&
-        
-        #Split Traffic
-        kubectl apply -f $linkerdPath/Examples/BlueGreen/frontend-traffic-split.yaml
-        
-        #UNCOMMENT: Test Traffic Shifting
-        #Modify Traffic weight
-        kubectl apply -f $linkerdPath/Examples/EmojiVoto/frontend-traffic-split.yaml
-        
-        #Check Routing behaviour
-        ```
-
-      - ###### Deploy more apps - Ratings app (Optional)
-
-        ```bash
-        #Deploy backend DB as container
-        kubectl create ns db --context=$CTX_CLUSTER1
-        
-        helm repo add bitnami https://charts.bitnami.com/bitnami
-        helm search repo bitnami
-        
-        helm install ratingsdb bitnami/mongodb:4.4.10 -n db \
-        --set auth.username=ratingsuser,auth.password=ratingspwd,auth.database=ratingsdb \
-        --set controller.nodeSelector.agentpool=agentpool \
-        --set controller.defaultBackend.nodeSelector.agentpool=agentpool
-        ```
-
-      - ##### Observability
-
-        - ###### View Basic Metrics
-
-          ![linkerd-grafana1](./Assets/linkerd-grafana1.png)
-
-          ![linkerd-grafana2](./Assets/linkerd-grafana2.png)
-
+        #Cleanup
+        #Uninstall Istio setup - primary cluster
+        istioctl x uninstall --set profile=default --purge --context=$CTX_CLUSTER1
+        kubectl delete namespace istio-system --context=$CTX_CLUSTER1
           
-
-      - ###### Distributed Tracing
-
-        ![linkerd-jaeger](./Assets/linkerd-jaeger.png)
-
-        ```bash
-        kubectl -n emojivoto set env --all deploy OC_AGENT_HOST=collector.linkerd-jaeger:55678
-        for ((i=1;i<=100;i++)); do   curl -kubectl "https://emojivoto.domain.com/api/list"; done
+        #Uninstall Istio setup - secondary cluster
+        istioctl x uninstall --set profile=default --purge --context=$CTX_CLUSTER2
+        kubectl delete namespace istio-system --context=$CTX_CLUSTER2
         ```
-
-      - ##### Fault Injection
-
-        ![istio-trafficplit](./Assets/istio-trafficplit-faultinjection.png)
-
-        ```bash
-        #Left as an Exercise
+    
+  - #### Linkerd
+  
+     ![istio-arch](./Assets/linkerd-arch.png)
+  
+    
+  
+    - ##### Define CLI Variables
+  
+      ```bash
+      linkerdResourceGroup="secondary-workshop-rg"
+      linkerdClusterName="secondary-mesh-cluster"
+      linkerdAcrName="scdmeshacr"
+      linkerdIngressName="linkerd-ing"
+      linkerdIngressNSName="$linkerdIngressName-ns"
+      linkerdIngressDeployName=""
+      linkerdSysNodePoolName="agentpool"
+          helmPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/AKS/Helm"
+          linkerdPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/Linkerd"
+      ```
+    
+    - ##### Connect to Secondary Cluster
+  
+      ```bash
+      #Connect to Secondary Cluster - CLI or Portal
+      export CTX_CLUSTER2=secondary
+      
+      kubectl config use-context $CTX_CLUSTER
+      ```
+    
+    - ##### Install Nginx Ingress
+    
+      ```bash
+      #Install Nginx Ingress Controller
+      #Create Ingress Namespace
+      kubectl create namespace $linkerdIngressNSName
+      kubectl label namespace $linkerdIngressNSName name=$linkerdIngressNSName
+      
+      #Install nginx using Helm
+      helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+      helm repo update
+      
+      #Install Nginx Ingress controller
+      helm install $linkerdIngressName ingress-nginx/ingress-nginx --namespace $linkerdIngressNSName \
+      --set controller.nodeSelector.agentpool=$linkerdSysNodePoolName \
+      --set controller.defaultBackend.nodeSelector.agentpool=$linkerdSysNodePoolName \
+      
+      #UNCOMMENT: Install Nginx Ingress controller as an Internal LoadBalancer - Private IP Address
+      #IMPORTANT: 
+      #--set controller.service.loadBalancerIP=$backendIpAddress \
+      #--set controller.service.annotations.'service\.beta\.kubernetes\.io/azure-load-balancer-internal-subnet'=$aksIngressSubnetName
+      ```
+    
+    - ##### Deploy K8s Ingress
+    
+      ```bash
+      helm create ingress-chart
+          
+      helm install  ingress-chart -n secondary $helmPath/ingress-chart/ -f $helmPath/ingress-chart/values-dev.yaml
+      helm upgrade  ingress-chart -n secondary $helmPath/ingress-chart/ -f $helmPath/ingress-chart/values-dev.yaml
+      
+      #UnInstall ingress
+      #helm uninstall ingress-chart -n secondary
+      ```
+    
+    - ##### Download Linkerd
+  
+      ```bash
+          export LINKERD2_VERSION=stable-2.10.0
+          
+          curl -sL https://run.linkerd.io/install | sh
+          linkerd check --pre
+          linkerd version
+          
+          linkerd install  | kubectl apply -f -
+          linkerd check
+          
+          Install Viz for Linkerd
+          =========================
+          linkerd viz install | kubectl apply -f -
+          linkerd check
+          linkerd viz dashboard&
+          
+          Install Jaeger for Linkerd
+          ===========================
+          linkerd jaeger install | kubectl apply -f -
+          linkerd jaeger check
+          linkerd jaeger dashboard&
+      ```
+    
+    - ##### Inject Linkerd
+    
+      ```bash
+      Inject Linkerd into Ingress Cntroller
+      =======================================
+      kubectl -n $linkerdIngressNSName get deploy/$linkerdIngressDeployName -o yaml | linkerd inject --ingress - | kubectl apply -f -
+      
+      Inject Linkerd into Namespaces
+      ================================
+      kubectl get deploy -n secondary -o yaml | linkerd inject - | kubectl apply -f -
+      linkerd viz dashboard&
+      ```
+    
+    - ##### Traffic Splitting
+    
+      ![istio-trafficplit](./Assets/istio-trafficplit.png)
+    
+      
+    
+      ```bash
+      k create ns emojivoto
+      
+      kubectl config set-context --current --namespace=emojivoto
+      
+      #Deploy Ingress 
+      kubectl apply -f $linkerdPath/Examples/EmojiVoto/emojivoto-ingress.yaml 
+      kubectl apply -f $linkerdPath/Examples/EmojiVoto/emojivoto.yaml
+      
+      #Inject Linkerd into emojivoto namespace
+      kubectl get deploy -n emojivoto -o yaml | linkerd inject - | kubectl apply -f -
+      
+      #Display Linkerd dashboard as a background service
+      linkerd viz dashboard&
+      
+      #Split Traffic
+      kubectl apply -f $linkerdPath/Examples/EmojiVoto/emojivoto-traffic-split.yaml
+      
+      #UNCOMMENT: Test Traffic Shifting
+      #Modify Traffic weight
+      kubectl apply -f $linkerdPath/Examples/EmojiVoto/emojivoto-traffic-split.yaml
+      
+      #Check Routing behaviour
+      
+      ```
+    
+      - ###### Example - Split Traffic
+    
+        ```yaml
+        apiVersion: split.smi-spec.io/v1alpha1
+        kind: TrafficSplit
+        metadata:
+          name: emojivoto-split
+          namespace: emojivoto
+        spec:  
+          service: web-svc
+          backends:
+          - service: web-svc
+            weight: 100
+          
+        #UNCOMMENT: Test Traffic Shifting
+          # - service: web-svc-v12
+          #   weight: 0
         ```
-
+    
+      ![linkerd-traffic-split](./Assets/linkerd-traffic-split.png)      
+  
+      
+  
+    - ##### Blue/Green
+    
+      ```bash
+      k create ns test
+      
+      kubectl config set-context --current --namespace=test
+      
+      #Deploy frontend-blue app
+      kubectl apply -f $linkerdPath/Examples/BlueGreen/frontend-blue.yaml
+      
+      #Deploy frontend-green app
+      kubectl apply -f $linkerdPath/Examples/BlueGreen/frontend-green.yaml
+      
+      #Deploy Ingress 
+      kubectl apply -f $linkerdPath/Examples/BlueGreen/frontend-ingress.yaml
+      
+      #Check Comments
+      
+      #Inject Linkerd into test namespace
+      kubectl get deploy -n test -o yaml | linkerd inject - | kubectl apply -f -
+      
+      #Display Linkerd dashboard as a background service
+      linkerd viz dashboard&
+      
+      #Split Traffic
+      kubectl apply -f $linkerdPath/Examples/BlueGreen/frontend-traffic-split.yaml
+      
+      #UNCOMMENT: Test Traffic Shifting
+      #Modify Traffic weight
+      kubectl apply -f $linkerdPath/Examples/EmojiVoto/frontend-traffic-split.yaml
+      
+      #Check Routing behaviour
+      ```
+  
+    - ##### Deploy more apps - Ratings app (Optional)
+    
+      ```bash
+      #Deploy backend DB as container
+      kubectl create ns db --context=$CTX_CLUSTER1
+      
+      helm repo add bitnami https://charts.bitnami.com/bitnami
+      helm search repo bitnami
+      
+      helm install ratingsdb bitnami/mongodb:4.4.10 -n db \
+      --set auth.username=ratingsuser,auth.password=ratingspwd,auth.database=ratingsdb \
+      --set controller.nodeSelector.agentpool=agentpool \
+      --set controller.defaultBackend.nodeSelector.agentpool=agentpool
+      ```
+    
+    - ##### Observability
+    
+      - ###### View Basic Metrics
+    
+        ![linkerd-grafana1](./Assets/linkerd-grafana1.png)
+    
+        ![linkerd-grafana2](./Assets/linkerd-grafana2.png)
         
-
-      - ##### Circuit Breaking
-
-        ```bash
-        #Left as an Exercise
-        ```
-
         
-
-      - ###### Service Mirroring
-
-        ![linkerd-mirroring](./Assets/linkerd-mirroring.png)
-        
-        ```bash
-        #Left as an Exercise
-        ```
+    
+    - ##### Distributed Tracing
+    
+      ![linkerd-jaeger](./Assets/linkerd-jaeger.png)
+    
+      ```bash
+      kubectl -n emojivoto set env --all deploy OC_AGENT_HOST=collector.linkerd-jaeger:55678
+      for ((i=1;i<=100;i++)); do   curl -kubectl "https://emojivoto.domain.com/api/list"; done
+      ```
+    
+    - ##### Fault Injection
+    
+      ![istio-trafficplit](./Assets/istio-trafficplit-faultinjection.png)
+    
+      ```bash
+      #Left as an Exercise
+      ```
+    
+    - ##### Circuit Breaking
+    
+      ```bash
+      #Left as an Exercise
+      ```
+    
+    - ##### Service Mirroring
+    
+      ![linkerd-mirroring](./Assets/linkerd-mirroring.png)
+    
+      ```bash
+      #Left as an Exercise  
+      ```
 
   - ### API Mesh
 
@@ -1189,7 +1183,8 @@
 
     ![istio-mirroring-2](./Assets/istio-mirroring-3.png)
 
-    - Unified Model across Clusters
+    - ### Unified Model across Clusters
+      
       - Observability
       
       - Reliability
@@ -1212,11 +1207,10 @@
 
 - ## References
 
-  - **Istio** - https://istio.io/latest/docs/setup/getting-started/
-  - **Linkerd** - https://linkerd.io/2.11/getting-started/
-  - Open Service Mesh -
-    - https://openservicemesh.io/
-    - https://docs.microsoft.com/en-us/azure/aks/open-service-mesh-about
-  - **APIM Self Hosted** - https://docs.microsoft.com/en-us/azure/api-management/self-hosted-gateway-overview
-  - **Github Repo** - https://github.com/monojit18/ServiceMeshWorkshop
+  - **[Istio](https://istio.io/latest/docs/setup/getting-started/)**
+  - **[Linkerd](https://linkerd.io/2.11/getting-started/)**
+  - **[Open Service Mesh](https://openservicemesh.io/)**
+    - [About](https://docs.microsoft.com/en-us/azure/aks/open-service-mesh-about)
+  - **[APIM Self Hosted](https://docs.microsoft.com/en-us/azure/api-management/self-hosted-gateway-overview)**
+  - **[Github Repo](https://github.com/monojit18/ServiceMeshWorkshop)**
 
