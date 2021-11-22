@@ -43,7 +43,7 @@
 
     - **[Istio](#Istio)**
 
-      - **[Configure AKS Cluster - Primary](#Configure AKS Cluster - Primary)**
+      - **[Configure AKS Cluster - Primary](#Configure-AKS-Cluster-Primary)**
 
       - **[Download Istio](#Download-Istio)**
 
