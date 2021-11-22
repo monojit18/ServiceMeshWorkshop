@@ -10,15 +10,15 @@
 
 - **[K8s High Level Architecture](#K8s-High-Level-Architecture)**
 
-- **[AKS - High Level Architecture](#AKS - High Level Architecture)**
+- **[AKS - High Level Architecture](#AKS - High-Level-Architecture)**
 
-- **[Understand ServiceMesh - What it is?](#Understand ServiceMesh - What it is?)**
+- **[Understand ServiceMesh](#Understand-ServiceMesh - What it is?)**
 
-- **[Service Mesh - Where is it Deployed?](#Service Mesh - Where is it Deployed?)**
+- **[Service Mesh](#Service-Mesh - Where-is-it-Deployed?)**
 
 - **[Purpose](#Purpose)**
 
-- **[What to Accomplish](#What to Accomplish)**
+- **[What to Accomplish](#What-to-Accomplish)**
 
 - **[HOL](#HOL)**
 
