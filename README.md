@@ -8,7 +8,7 @@
 
 ## Table Of Contents
 
-- **[K8s High Level Architecture](#K8s High Level Architecture)**
+- **[K8s High Level Architecture](#K8s-High-Level-Architecture)**
 
 - **[AKS - High Level Architecture](#AKS - High Level Architecture)**
 
