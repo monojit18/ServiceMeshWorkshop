@@ -102,7 +102,7 @@
 
   
 
-- ### AKS - High Level Architecture
+- ### AKS High Level Architecture
 
   ![aks-hl](./Assets/aks-hl.png)
 
@@ -110,7 +110,7 @@
 
   
 
-- ### Understand ServiceMesh - *What it is?*
+- ### Understand ServiceMesh *What it is?*
 
   ![istio-arch](./Assets/service-mesh.png)
 
@@ -134,7 +134,7 @@
     - Multi Cluster Connectivity
     - A/B Testing
   
-- ### Service Mesh - Where is it Deployed?
+- ### Service Mesh Where is it Deployed?
 
   ![aks-hl](./Assets/aks-ref-arch.png)
 
@@ -158,7 +158,7 @@
 
 - ## HOL
 
-  - ### Pre-Requisites
+  - ### Pre Requisites
 
     - Azure CLI
     - VSCode *(preferred)*
@@ -268,7 +268,7 @@
       
         
 
-    - #### Create Azure Container Registry (ACR) - Primary
+    - #### Create Azure Container Registry (ACR) Primary
     
       ```bash
       #Deploy ACR
@@ -334,7 +334,7 @@
       istioPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/Istio"
       ```
 
-      ##### Configure AKS Cluster - Primary
+      ##### Configure AKS Cluster Primary
 
       ```bash
       #Set Env Variable for Primary Cluster
