@@ -6,6 +6,61 @@
 
 
 
+## Table Of Contents
+
+- **K8s High Level Architecture**
+- **AKS - High Level Architecture**
+- **Understand ServiceMesh -** **What it is?**
+  - **Features**
+  - **Benefits**
+- **Service Mesh - Where is it Deployed?**
+- **Purpose**
+- **What to Accomplish**
+- **HOL**
+  - **Pre-Requisites**
+  - **Let us Delve into it**
+  - **Clone Workshop repo**
+  - **Plan Workshop Tasks**
+    - **Define Local variables**
+    - **Login to Azure**
+    - **Create Resource Group**
+    - **Service Principal**
+    - **Create Network for AKS**
+    - **Create Azure Container Registry (ACR) - Primary**
+    - **Create Primary AKS Cluster**
+    - **Create Secondary AKS Cluster**
+  - **Service Mesh**
+    - **Istio**
+    - **Set CLI Variables for Istio**
+    - **Configure AKS Cluster - Primary**
+    - **Download Istio**
+    - **Check Cluster Health**
+    - **Create Namespaces**
+    - **Install Istio CLI**
+    - **Configure Istio in Primary Cluster**
+      - **Inject Istio into Namespaces**
+      - **Install Addons**
+      - **Deploy BookInfo App**
+      - **Expose Microservices thru an Ingress Gateway**
+      - **Expose Kiali dashboard service thru a Gateway**
+      - **Observability**
+      - **Deploy more apps (Optional)**
+      - **Traffic Splitting**
+      - **Gateway**
+      - **Virtual Service**
+      - **Destination Rule**
+      - **Fault Injection**
+        - **Introduce Fault**
+        - **Introduce Fix**
+      - **Circuit Breaker**
+      - **Distributed Tracing**
+      - **Service Mirroring**
+        - **Create and Configure Secondary Cluster**
+        - **Configure Primary to Mirror services**
+      - **CleanUP**
+
+
+
 ## Introduction
 
 - ### K8s High Level Architecture
@@ -87,7 +142,7 @@
 
     - #### Plan Workshop Tasks
 
-      - Define Local variables
+      - ##### Define Local variables
 
         ```bash
         tenantId=""
@@ -117,7 +172,7 @@
         baseFolderPath=""
         ```
         
-      - Login to Azure
+      - ##### Login to Azure
       
         ```bash
         #Login to Azure
@@ -130,14 +185,14 @@
         #az account set -s $subscriptionId
         ```
       
-      - Create Resource Group
+      - ##### Create Resource Group
       
         ```bash
         #Create Resource Group for AKS workloads
         az group create -n $aksResourceGroup -l $location
         ```
 
-      - Service Principal
+      - ##### Service Principal
       
         ```bash
         #Create Service Principal
@@ -157,7 +212,7 @@
       
     - #### Create Network for AKS
 
-      - ##### **Create Virtual Network**
+      - ##### Create Virtual Network
 
         ```bash
         #Deploy Virtual Network
@@ -166,12 +221,10 @@
         echo $aksVnetId
         ```
 
-        
-
-      - ##### **Create Subnet for AKS cluster**
+      - ##### Create Subnet for AKS cluster
 
         ```bash
-        #Deploy AKS Subnet inside the Virtual Network
+      #Deploy AKS Subnet inside the Virtual Network
         az network vnet subnet create -n $aksSubnetName --vnet-name $aksVnetName -g $aksResourceGroup --address-prefixes $aksSubnetPrefix
         aksSubnetId=$(az network vnet subnet show -n $aksSubnetName --vnet-name $aksVnetName -g $aksResourceGroup --query="id" -o tsv)
         echo $aksSubnetId
@@ -179,11 +232,11 @@
         #Assign Role to the Virtual Network
         az role assignment create --assignee $spAppId --role "Network Contributor" --scope $aksVnetId
         ```
-
-        
       
-    - #### Create Azure Container Registry (ACR) - Primary
+        
 
+    - #### Create Azure Container Registry (ACR) - Primary
+    
       ```bash
       #Deploy ACR
       az acr create -n $acrName -g $aksResourceGroup --sku STANDARD --admin-enabled false
@@ -193,7 +246,7 @@
       #Assign Role to Service Principal for the ACR
       az role assignment create --assignee $spAppId --role "AcrPull" --scope $acrId
       ```
-
+    
       
 
     - #### Create Primary AKS Cluster
@@ -219,13 +272,13 @@
       
       
     - #### Create Secondary AKS Cluster
-
+    
       ```bash
       #Follow similar steps as Primary
       
       #Create AKS Cluster from CLI or Portal
       ```
-
+    
   - ### Service Mesh
 
     - #### Istio
@@ -312,7 +365,7 @@
 
       ##### Configure Istio in Primary Cluster
 
-      - ###### Inject Istio into Namespaces
+      - ##### Inject Istio into Namespaces
 
         ```bash
         #Inject Istio into primary namespace
@@ -487,7 +540,7 @@
 
       
 
-      ###### Traffic Splitting
+      ##### Traffic Splitting
 
       ![k8s-service](./Assets/k8s-service.png)
 
@@ -558,7 +611,7 @@
 
       
 
-      ###### Fault Injection
+      ##### Fault Injection
 
       ![istio-trafficplit](./Assets/istio-trafficplit-faultinjection.png)
 
@@ -637,7 +690,7 @@
             weight: 50
       ```
 
-      ###### Blue/Green
+      ##### Blue/Green
 
       ![istio-trafficplit-bluegreen](./Assets/istio-trafficplit-bluegreen.png)
 
@@ -666,7 +719,7 @@
       #Check Routing behaviour again
       ```
 
-      ###### Circuit Breaker
+      ##### Circuit Breaker
 
       ```bash
       #Circuit Breaker
@@ -738,7 +791,7 @@
 
       
 
-      ###### Distributed Tracing
+      ##### Distributed Tracing
 
       ![istio-metrics-trace1](./Assets/istio-metrics-trace1.png)
 
@@ -746,7 +799,7 @@
 
       
 
-      ###### Service Mirroring
+      ##### Service Mirroring
 
       ![k8s-mirroring](./Assets/k8s-mirroring.png)
 
@@ -855,13 +908,13 @@
         ```
     
   - #### Linkerd
-  
+
      ![istio-arch](./Assets/linkerd-arch.png)
-  
+
     
-  
+
     - ##### Define CLI Variables
-  
+
       ```bash
       linkerdResourceGroup="secondary-workshop-rg"
       linkerdClusterName="secondary-mesh-cluster"
@@ -875,7 +928,7 @@
       ```
     
     - ##### Connect to Secondary Cluster
-  
+
       ```bash
       #Connect to Secondary Cluster - CLI or Portal
       export CTX_CLUSTER2=secondary
@@ -919,7 +972,7 @@
       ```
     
     - ##### Download Linkerd
-  
+
       ```bash
           export LINKERD2_VERSION=stable-2.10.0
           
@@ -989,7 +1042,7 @@
       ```
     
       - ###### Example - Split Traffic
-    
+      
         ```yaml
         apiVersion: split.smi-spec.io/v1alpha1
         kind: TrafficSplit
@@ -1006,11 +1059,12 @@
           # - service: web-svc-v12
           #   weight: 0
         ```
-    
-      ![linkerd-traffic-split](./Assets/linkerd-traffic-split.png)      
-  
       
-  
+      
+    ![linkerd-traffic-split](./Assets/linkerd-traffic-split.png)      
+      
+    
+    
     - ##### Blue/Green
     
       ```bash
@@ -1044,7 +1098,7 @@
       
       #Check Routing behaviour
       ```
-  
+
     - ##### Deploy more apps - Ratings app (Optional)
     
       ```bash
@@ -1063,9 +1117,9 @@
     - ##### Observability
     
       - ###### View Basic Metrics
-    
+      
         ![linkerd-grafana1](./Assets/linkerd-grafana1.png)
-    
+      
         ![linkerd-grafana2](./Assets/linkerd-grafana2.png)
         
         
