@@ -12,9 +12,9 @@
 
 - **[AKS - High Level Architecture](#AKS-High-Level-Architecture)**
 
-- **[Understand ServiceMesh](#Understand-ServiceMesh-What-it-is?)**
+- **[Understand ServiceMesh](#Understand-ServiceMesh)**
 
-- **[Service Mesh](#Service-Mesh-Where-is-it-Deployed?)**
+- **[Service Mesh](#Service-Mesh)**
 
 - **[Purpose](#Purpose)**
 
@@ -35,7 +35,7 @@
     - **[Create Resource Group](#Create-Resource-Group)**
     - **[Service Principal](#Service-Principal)**
     - **[Create Network for AKS](#Create-Network-for-AKS)**
-    - **[Create Azure Container Registry (ACR) - Primary](#Create-Azure-Container-Registry(ACR)-Primary)**
+    - **[Create Azure Container Registry (ACR) - Primary](#Create-Azure-Container-Registry-(ACR)-Primary)**
     - **[Create Primary AKS Cluster](#Create-Primary-AKS-Cluster)**
     - **[Create Secondary AKS Cluster](#Create-Secondary-AKS-Cluster)**
 
@@ -110,7 +110,7 @@
 
   
 
-- ### Understand ServiceMesh *What it is?*
+- ### Understand ServiceMesh
 
   ![istio-arch](./Assets/service-mesh.png)
 
@@ -134,7 +134,7 @@
     - Multi Cluster Connectivity
     - A/B Testing
   
-- ### Service Mesh Where is it Deployed?
+- ### Service Mesh
 
   ![aks-hl](./Assets/aks-ref-arch.png)
 
