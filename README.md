@@ -35,7 +35,7 @@
     - **[Create Resource Group](#Create-Resource-Group)**
     - **[Service Principal](#Service-Principal)**
     - **[Create Network for AKS](#Create-Network-for-AKS)**
-    - **[Create Azure Container Registry (ACR) - Primary](#Create-Azure-Container-Registry-(ACR)-Primary)**
+    - **[Create Azure Container Registry (ACR)](#Create-Azure-Container-Registry-(ACR))**
     - **[Create Primary AKS Cluster](#Create-Primary-AKS-Cluster)**
     - **[Create Secondary AKS Cluster](#Create-Secondary-AKS-Cluster)**
 
@@ -268,7 +268,7 @@
       
         
 
-    - #### Create Azure Container Registry (ACR) Primary
+    - #### Create Azure Container Registry (ACR)
     
       ```bash
       #Deploy ACR
