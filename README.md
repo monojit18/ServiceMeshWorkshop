@@ -10,11 +10,11 @@
 
 - **[K8s High Level Architecture](#K8s-High-Level-Architecture)**
 
-- **[AKS - High Level Architecture](#AKS - High-Level-Architecture)**
+- **[AKS - High Level Architecture](#AKS-High-Level-Architecture)**
 
-- **[Understand ServiceMesh](#Understand-ServiceMesh - What it is?)**
+- **[Understand ServiceMesh](#Understand-ServiceMesh-What-it-is?)**
 
-- **[Service Mesh](#Service-Mesh - Where-is-it-Deployed?)**
+- **[Service Mesh](#Service-Mesh-Where-is-it-Deployed?)**
 
 - **[Purpose](#Purpose)**
 
@@ -22,89 +22,75 @@
 
 - **[HOL](#HOL)**
 
-  - **[Pre-Requisites](#Pre-Requisites)**
+  - **[Pre Requisites](#Pre-Requisites)**
 
-  - **[Let us Delve into it](#Let us Delve into it)**
+  - **[Let us Delve into it](#Let-us-Delve-into-it)**
 
-  - **[Clone Workshop repo](#Clone Workshop repo)**
+  - **[Clone Workshop repo](#Clone-Workshop-repo)**
 
-  - **[Plan Workshop Tasks](#Plan Workshop Tasks)**
+  - **[Plan Workshop Tasks](#Plan-Workshop-Tasks)**
 
-    - **[Define Local variables](#Define Local variables)**
-    - **[Login to Azure](#Login to Azure)**
-    - **[Create Resource Group](#Create Resource Group)**
-    - **[Service Principal](#Service Principal)**
-    - **[Create Network for AKS](#Create Network for AKS)**
-    - **[Create Azure Container Registry (ACR) - Primary](#Create Azure Container Registry (ACR) - Primary)**
-    - **[Create Primary AKS Cluster](#Create Primary AKS Cluster)**
-    - **[Create Secondary AKS Cluster](#Create Secondary AKS Cluster)**
+    - **[Define Local Variables](#Define-Local-Variables)**
+    - **[Login to Azure](#Login-to-Azure)**
+    - **[Create Resource Group](#Create-Resource-Group)**
+    - **[Service Principal](#Service-Principal)**
+    - **[Create Network for AKS](#Create-Network-for-AKS)**
+    - **[Create Azure Container Registry (ACR) - Primary](#Create-Azure-Container-Registry(ACR)-Primary)**
+    - **[Create Primary AKS Cluster](#Create-Primary-AKS-Cluster)**
+    - **[Create Secondary AKS Cluster](#Create-Secondary-AKS-Cluster)**
 
-  - **[Service Mesh](#Service Mesh)**
+  - **[Service Mesh](#Service-Mesh)**
 
     - **[Istio](#Istio)**
 
-      - **[Set CLI Variables for Istio](#Set CLI Variables for Istio)**
-
       - **[Configure AKS Cluster - Primary](#Configure AKS Cluster - Primary)**
 
-      - **[Download Istio](#Download Istio)**
+      - **[Download Istio](#Download-Istio)**
 
-      - **[Check Cluster Health](#Check Cluster Health)**
+      - **[Install Istio CLI](#Install-Istio-CLI)**
 
-      - **[Create Namespaces](#Create Namespaces)**
+      - **[Configure Istio](#Configure-Istio-in-Primary-Cluster)**
 
-      - **[Install Istio CLI](#Install Istio CLI)**
+        - **[Inject Istio](#Inject-Istio-into-Namespaces)**
 
-      - **[Configure Istio](#Configure Istio in Primary Cluster)**
-
-        - **[Inject Istio into Namespaces](#Inject Istio into Namespaces)**
-
-        - **[Install Addons](#Install Addons)**
+        - **[Install Addons](#Install-Addons)**
 
         - **[Observability](#Observability)**
 
-        - **[Traffic Splitting](#Traffic Splitting)**
+        - **[Traffic Splitting](#Traffic-Splitting)**
 
         - **[Gateway](#Gateway)**
 
-        - **[Virtual Service](#Virtual Service)**
+        - **[Virtual Service](#Virtual-Service)**
 
-        - **[Destination Rule](#Destination Rule)**
+        - **[Destination Rule](#Destination-Rule)**
 
-        - **[Fault Injection](#Fault Injection)**
+        - **[Fault Injection](#Fault-Injection)**
 
-        - **[Introduce Fault](#Introduce Fault)**
+        - **[Circuit Breaker](#Circuit-Breaker)**
 
-        - **[Introduce Fix](#Introduce Fix)**
+        - **[Distributed Tracing](#Distributed-Tracing)**
 
-        - **[Circuit Breaker](#Circuit Breaker)**
-
-        - **[Distributed Tracing](#Distributed Tracing)**
-
-        - **[Service Mirroring](#Service Mirroring)**
-
-        - **[Create and Configure Secondary Cluster](#Create and Configure Secondary Cluster)**
-
-        - **[Configure Primary to Mirror services](#Configure Primary to Mirror services)**
+        - **[Service Mirroring](#Service-Mirroring)**
 
           
 
     - **[Linkerd](#Linkerd)**
 
-      - **[Define CLI Variables](#Define CLI Variables)**
-      - **[Connect to Secondary Cluster](#Connect to Secondary Cluster)**
-      - **[Install Nginx Ingress](#Install Nginx Ingress)**
-      - **[Deploy K8s Ingress](#Deploy K8s Ingress)**
-      - **[Download Linkerd](#Download Linkerd)**
-      - **[Inject Linkerd](#Inject Linkerd)**
-      - **[Traffic Splitting](#Traffic Splitting)**
+      - **[Define CLI Variables](#Define-CLI-Variables)**
+      - **[Connect to Secondary Cluster](#Connect-to-Secondary-Cluster)**
+      - **[Install Nginx Ingress](#Install-Nginx-Ingress)**
+      - **[Deploy K8 Ingress](#Deploy-K8s-Ingress)**
+      - **[Download Linkerd](#Download-Linkerd)**
+      - **[Inject Linkerd](#Inject-Linkerd)**
+      - **[Traffic Splitting](#Traffic-Splitting)**
       - **[Blue/Green](#Blue/Green)**
       - **[Observability](#Observability)**
-      - **[Distributed Tracing](#Distributed Tracing)**
+      - **[Distributed Tracing](#Distributed-Tracing)**
 
-    - **[API Mesh](#API Mesh)**
+    - **[API Mesh](#API-Mesh)**
 
-  - **[What Next](#What Next)**
+  - **[What Next](#What-Next)**
 
   - **[References](#References)**
 
