@@ -257,17 +257,19 @@
       - ##### Create Subnet for AKS cluster
 
         ```bash
-        #Deploy AKS Subnet inside the Virtual Network
+      #Deploy AKS Subnet inside the Virtual Network
         az network vnet subnet create -n $aksSubnetName --vnet-name $aksVnetName -g $aksResourceGroup --address-prefixes $aksSubnetPrefix
         aksSubnetId=$(az network vnet subnet show -n $aksSubnetName --vnet-name $aksVnetName -g $aksResourceGroup --query="id" -o tsv)
         echo $aksSubnetId
+        
         #Assign Role to the Virtual Network
         az role assignment create --assignee $spAppId --role "Network Contributor" --scope $aksVnetId
         ```
-        
       
-    - #### Create Azure Container Registry (ACR)
+        
 
+    - #### Create Azure Container Registry (ACR)
+    
       ```bash
       #Deploy ACR
       az acr create -n $acrName -g $aksResourceGroup --sku STANDARD --admin-enabled false
@@ -279,7 +281,7 @@
       ```
     
       
-    
+
     - #### Create Primary AKS Cluster
 
       ```bash
