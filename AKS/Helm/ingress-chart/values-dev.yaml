@@ -11,7 +11,7 @@ ingress:
       proxy_set_header l5d-dst-override $service_name.$namespace.svc.cluster.local:$service_port;
       grpc_set_header l5d-dst-override $service_name.$namespace.svc.cluster.local:$service_port;
   hosts:
-  - name: 20.85.194.5.nip.io
+  - name: 40.76.135.1.nip.io
     paths:    
     - path: /?(.*)
       pathType: Prefix

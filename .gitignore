@@ -1,4 +1,6 @@
 !.gitignore
-AKS/Helm/aks-commands.txt
-Linkerd/Components/linkerd-commnads.txt
-Istio/Components/istio-commnads.txt
+.vscode
+**/aks-commands.txt
+**/linkerd-commnads.txt
+**/istio-commnads.txt
+
