@@ -9,7 +9,7 @@ metadata:
 spec:
   # tls:
   # - hosts:
-  #   - store.wkshpdev.com
+  #   - store.<dns-name>
   #   secretName: osm-tls-secret
   rules:
   - host: store.<dns-name>
