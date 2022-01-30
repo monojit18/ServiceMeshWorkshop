@@ -9,89 +9,22 @@
 ## Table Of Contents
 
 - **[K8s High Level Architecture](#K8s-High-Level-Architecture)**
-
 - **[AKS - High Level Architecture](#AKS-High-Level-Architecture)**
-
-- **[Understand ServiceMesh](#Understand-ServiceMesh)**
-
 - **[Service Mesh](#Service-Mesh)**
-
 - **[Purpose](#Purpose)**
-
 - **[What to Accomplish](#What-to-Accomplish)**
-
 - **[HOL](#HOL)**
 
   - **[Pre Requisites](#Pre-Requisites)**
-
   - **[Let us Delve into it](#Let-us-Delve-into-it)**
-
   - **[Clone Workshop repo](#Clone-Workshop-repo)**
-
   - **[Plan Workshop Tasks](#Plan-Workshop-Tasks)**
-
-    - **[Define Local Variables](#Define-Local-Variables)**
-    - **[Login to Azure](#Login-to-Azure)**
-    - **[Create Resource Group](#Create-Resource-Group)**
-    - **[Service Principal](#Service-Principal)**
-    - **[Create Network for AKS](#Create-Network-for-AKS)**
-    - **[Create Azure Container Registry (ACR)](#Create-Azure-Container-Registry-(ACR))**
-    - **[Create Primary AKS Cluster](#Create-Primary-AKS-Cluster)**
-    - **[Create Secondary AKS Cluster](#Create-Secondary-AKS-Cluster)**
-
   - **[Service Mesh](#Service-Mesh)**
-
     - **[Istio](#Istio)**
-
-      - **[Configure AKS Cluster - Primary](#Configure-AKS-Cluster-Primary)**
-
-      - **[Download Istio](#Download-Istio)**
-
-      - **[Install Istio CLI](#Install-Istio-CLI)**
-
-      - **[Configure Istio](#Configure-Istio-in-Primary-Cluster)**
-
-        - **[Inject Istio](#Inject-Istio-into-Namespaces)**
-
-        - **[Install Addons](#Install-Addons)**
-
-        - **[Observability](#Observability)**
-
-        - **[Traffic Splitting](#Traffic-Splitting)**
-
-        - **[Gateway](#Gateway)**
-
-        - **[Virtual Service](#Virtual-Service)**
-
-        - **[Destination Rule](#Destination-Rule)**
-
-        - **[Fault Injection](#Fault-Injection)**
-
-        - **[Circuit Breaker](#Circuit-Breaker)**
-
-        - **[Distributed Tracing](#Distributed-Tracing)**
-
-        - **[Service Mirroring](#Service-Mirroring)**
-
-          
-
     - **[Linkerd](#Linkerd)**
-
-      - **[Define CLI Variables](#Define-CLI-Variables)**
-      - **[Connect to Secondary Cluster](#Connect-to-Secondary-Cluster)**
-      - **[Install Nginx Ingress](#Install-Nginx-Ingress)**
-      - **[Deploy K8 Ingress](#Deploy-K8s-Ingress)**
-      - **[Download Linkerd](#Download-Linkerd)**
-      - **[Inject Linkerd](#Inject-Linkerd)**
-      - **[Traffic Splitting](#Traffic-Splitting)**
-      - **[Blue/Green](#Blue/Green)**
-      - **[Observability](#Observability)**
-      - **[Distributed Tracing](#Distributed-Tracing)**
-
+    - [Open Service Mesh](#Open-Service-Mesh)
     - **[API Mesh](#API-Mesh)**
-
   - **[What Next](#What-Next)**
-
   - **[References](#References)**
 
 ## Introduction
@@ -108,16 +41,16 @@
 
   
 
-  
-
-- ### Understand ServiceMesh
+- ### Service Mesh
 
   ![istio-arch](./Assets/service-mesh.png)
 
-  
-
-  - #### Features
-
+  - Some Service Mesh can have its own Ingress Controller or Gateway - viz. *Istio*
+    - Istio works in both ways
+    - This workshop rather use Istio's own Gateway rather than requiring an existing one
+  - Some Service Mesh might be dependent on existing Ingress Gateway - viz. *Linkerd*
+    - Thsi workshop would use Linkerd with Nginx Ingress controller
+  - **Features**
     - Observability
     - Ingress Routing
     - Traffic Management
@@ -126,23 +59,11 @@
       - Distruibuted Tracing
       - Service Mirroring
       - Circuit Breaking
-
-  - #### Benefits
-
+  - **Benefits**
     - Blue/Green Deployment
     - Fault Injection
     - Multi Cluster Connectivity
     - A/B Testing
-  
-- ### Service Mesh
-
-  ![aks-hl](./Assets/aks-ref-arch.png)
-
-  - Some Service Mesh can have its own Ingress Controller or Gateway - viz. *Istio*
-    - Istio works in both ways
-    - This workshop rather use Istio's own Gateway rather than requiring an existing one
-  - Some Service Mesh might be dependent on existing Ingress Gateway - viz. *Linkerd*
-    - Thsi workshop would use Linkerd with Nginx Ingress controller
 
 ## Purpose
 
@@ -161,9 +82,14 @@
   - ### Pre Requisites
 
     - Azure CLI
+
     - VSCode *(preferred)*
+
     - Github client
+
     - Any form of K8s Cluster. AKS is used here as an example
+
+      
 
   - ### Let us Delve into it
 
@@ -309,6 +235,8 @@
       
       #Create AKS Cluster from CLI or Portal
       ```
+      
+      
     
   - ### Service Mesh
 
@@ -328,8 +256,8 @@
       secondaryResourceGroup="secondary-workshop-rg"
       secondaryClusterName="secondary-mesh-cluster"
       primaryAcrName=$acrName
-      helmPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/AKS/Helm"
-      istioPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/Istio"
+      helmPath="./AKS/Helm"
+      istioPath="./Istio"
       ```
 
       ##### Configure AKS Cluster Primary
@@ -954,8 +882,8 @@
       linkerdIngressNSName="$linkerdIngressName-ns"
       linkerdIngressDeployName=""
       linkerdSysNodePoolName="agentpool"
-          helmPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/AKS/Helm"
-          linkerdPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/Linkerd"
+          helmPath="./AKS/Helm"
+          linkerdPath="./Linkerd"
       ```
     
     - ##### Connect to Secondary Cluster
@@ -1092,10 +1020,11 @@
         ```
       
       
+
     ![linkerd-traffic-split](./Assets/linkerd-traffic-split.png)      
       
-    
-    
+
+
     - ##### Blue/Green
     
       ```bash
@@ -1164,102 +1093,514 @@
       for ((i=1;i<=100;i++)); do   curl -kubectl "https://emojivoto.domain.com/api/list"; done
       ```
     
-    - ##### Fault Injection
     
-      ![istio-trafficplit](./Assets/istio-trafficplit-faultinjection.png)
+    
+    - ### Open Service Mesh
+    
+      ![osm-demo](./Assets/osm-demo.png)
+    
+      
+      
+      - ##### Define CLI Variables
+
+      ```bash
+      tenantId=""
+      subscriptionId=""
+      location="eastus"
+      clusterName="aks-train-mesh-cluster"
+      version=""
+      aksResourceGroup="aks-train-rg"
+      acrName="srvmeshacr"
+      osmFolderPath="$baseFolderPath/OSM"
+      ```
+    
+      
+    
+    - ##### Connect to the AKS cluster
     
       ```bash
-      #Left as an Exercise
+      az aks get-credentials -g $aksResourceGroup --name $clusterName --admin --overwrite
       ```
     
-    - ##### Circuit Breaking
+      
+    
+    - ##### Install Open Service Mesh (OSM)
     
       ```bash
-      #Left as an Exercise
+      osm install \
+          --set=OpenServiceMesh.enablePermissiveTrafficPolicy=false \
+          --set=OpenServiceMesh.deployPrometheus=true \
+          --set=OpenServiceMesh.deployGrafana=true \
+          --set=OpenServiceMesh.deployJaeger=true
       ```
     
-    - ##### Service Mirroring
+      
     
-      ![linkerd-mirroring](./Assets/linkerd-mirroring.png)
+    - ##### Create Namespaces
     
       ```bash
-      #Left as an Exercise  
+      kubectl create namespace bookstore
+      kubectl create namespace bookbuyer
+      kubectl create namespace bookthief
+      kubectl create namespace bookwarehouse
       ```
-
-  - ### API Mesh
-
-    ![apimesh](./Assets/apimesh.png)
-
-    - Authentication thru OAuth or OIDC
-
-    - Deep integration with Azure AD B2B and B2C scenarios
-
-    - APIM Policies
-
-      - Caching
-      - Rate Limiting
-      - Retry
-      - URL Rewrite
-      - Response/Response body transformation e.g. JSON to XML and vice versa
-      - Control Flow and Usage
-      - **Custom Role, RBAC**
-      - .....
-
-    ```bash
-    #Declare Local variables for APIM
-    apimeshPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/APIMesh"
     
-    #Deploy APIM on AKS
-    Ref: https://docs.microsoft.com/en-us/azure/api-management/how-to-deploy-self-hosted-gateway-kubernetes
-    kubectl create secret generic apimesh-token -n apimesh --from-literal=value="GatewayKey apimesh&202112041054&73uoRfRgH4qcMmDvNzaL4dKRCoFI9IbCYhkJzrrvl1aVAaW5+bCghCsLDdEnMWbQJHiOkzUWzt093ocZRfb6BA=="  --type=Opaque
-    kubectl apply -f $apimeshPath/apimesh.yaml -n apimesh
+      
     
     
-    #Expose APIM as Internal LoadBalancer Service
-    #Check Comments
-    Modify $apimeshPath/apimesh.yaml
+    - ##### Inject OSM into the *Namespaces*
     
-    #Public facing L7 LoadBalancer like Application Gateway would call this Service directly
-    #Define RatingsAPI (deloyed earlier) behind APIM
-    #Test API calls through Application Gateway
-    ```
-
-    - **Example - APIM Service** 
-
-      ```yaml
-      apiVersion: v1
-      kind: Service
-      metadata:
-        name: apimesh
-        annotations:
-          service.beta.kubernetes.io/azure-load-balancer-internal: "true"
-          service.beta.kubernetes.io/azure-load-balancer-internal-subnet: "secondary-ingress-subnet"
-      spec:
-      #Define type as LoadBalancer
-        type: LoadBalancer
-      #Assign a fixed Private IP  
-        loadBalancerIP: 31.0.5.100
-        ports:
-        - name: http
-          port: 80
-          targetPort: 8080
-        - name: https
-          port: 443
-          targetPort: 8081
-        selector:
-          app: apimesh
+        ```bash
+        osm namespace add bookstore
+        osm namespace add bookbuyer
+        osm namespace add bookthief
+        osm namespace add bookwarehouse
+        ```
+    
+        
+    
+    - ##### Enable Metrics for OSM *Namespaces*
+    
+        ```bash
+        osm metrics enable --namespace bookstore
+        osm metrics enable --namespace bookbuyer
+        osm metrics enable --namespace bookthief
+        osm metrics enable --namespace bookwarehouse
+        ```
+    
+        
+    
+    - ##### Import images from Docker Hub
+    
+        ```bash
+        #bookbuyer
+        az acr import -n $acrName --source docker.io/openservicemesh/bookbuyer:v0.11.1 -t bookbuyer:v0.11.1
+        
+        #bookstore
+        az acr import -n $acrName --source docker.io/openservicemesh/bookstore:v0.11.1 -t bookstore:v0.11.1
+        
+        #bookthief
+        az acr import -n $acrName --source docker.io/openservicemesh/bookthief:v0.11.1 -t bookthief:v0.11.1
+        
+        #bookwarehouse
+        az acr import -n $acrName --source docker.io/openservicemesh/bookwarehouse:v0.11.1 -t bookwarehouse:v0.11.1
+        ```
+    
+        
+    
+    - ##### Deploy Applications
+    
+        ```bash
+        #Deploy bookbuyer
+        kubectl apply -f $osmfolderPath/yamls/bookbuyer.yaml
+        
+        #Deploy bookstore
+        kubectl apply -f $osmfolderPath/yamls/bookstore.yaml
+        
+        #Deploy bookthief
+        kubectl apply -f $osmfolderPath/yamls/bookthief.yaml
+        
+        #Deploy bookwarehouse
+        kubectl apply -f $osmfolderPath/yamls/bookwarehouse.yaml
+        ```
+    
+        
+    
+    - ##### Check Deployments
+    
+        ```bash
+        kubectl get deployments -n bookbuyer
+        kubectl get deployments -n bookthief
+        kubectl get deployments -n bookstore
+        kubectl get deployments -n bookwarehouse
+        
+        kubectl get pods -n bookbuyer
+        kubectl get pods -n bookthief
+        kubectl get pods -n bookstore
+        kubectl get pods -n bookwarehouse
+        
+        kubectl get services -n bookstore
+        kubectl get services -n bookwarehouse
+        
+        kubectl get endpoints -n bookstore
+        kubectl get endpoints -n bookwarehouse
+        ```
+    
+        
+    
+    - ##### Check Mesh configuration
+    
+        ```bash
+        kubectl get meshconfig osm-mesh-config -n osm-system -o yaml
+        ```
+    
+        
+    
+    - ##### Nginx Ingress
+    
+        ```bash
+        #Create namespace for Nginx Ingress
+        kubectl create ns osm-nginx-ingess-ns
+        
+        #Install Nginx Ingress controller
+        helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+        helm repo update
+        
+        helm install osm-nginx-ingess ingress-nginx/ingress-nginx --namespace osm-nginx-ingess-ns \
+        --set controller.nodeSelector.agentpool=agentpool \
+        --set controller.defaultBackend.nodeSelector.agentpool=agentpool
+        ```
+    
+        
+    
+    - ##### Ingress to route to BookStore Service 
+    
+        ```yaml
+        apiVersion: networking.k8s.io/v1
+        kind: Ingress
+        metadata:
+          name: osm-ingress
+          namespace: bookstore
+          annotations:
+            kubernetes.io/ingress.class: nginx    
+            nginx.ingress.kubernetes.io/rewrite-target: /
+        spec:
+          # tls:
+          # - hosts:
+          #   - store.<dns-name>
+          #   secretName: osm-tls-secret
+          rules:
+          - host: store.<dns-name>
+            http:
+              paths:
+              - path: /store
+                pathType: Prefix
+                backend:
+                  service:
+                    name: bookstore
+                    port:
+                      number: 14001
+        
+        ---
+        kind: IngressBackend
+        apiVersion: policy.openservicemesh.io/v1alpha1
+        metadata:
+          name: bookstore-backend
+          namespace: bookstore
+        spec:
+          backends:
+          - name: bookstore
+            port:
+              number: 14001
+              protocol: http
+          sources:
+          - kind: Service
+            namespace: osm-nginx-ingess-ns
+            name: osm-nginx-ingess-ingress-nginx-controller
+        ```
+    
+        
+    
+    - ##### Access underlying services
+    
+    
+        - **BookThief**
+    
+            ```bash
+            #Run BookThief as background service
+            ./$osmFolderPath/osm/scripts/port-forward-bookthief-ui.sh &
+            
+            #Open BookThief page in browser
+            http://localhost:8083/
+            ```
+    
+            
+    
+        - **BookBuyer**
+    
+            ```bash
+            #Run BookBuyer as background service
+            ./$osmFolderPath/osm/scripts/port-forward-bookbuyer-ui.sh &
+            
+            #Open BookBuyer page in browser
+            http://localhost:8080/
+            ```
+    
+            
+    
+        - Check that services are Not working
+    
+            ![osm-gen-1](./Assets/osm-gen-1.png)
+    
+            
+    
+    - ##### Deploy Traffic Target
+    
+    
+        - Allows traffic between services within the Mesh
+    
+        ```yaml
+        kind: TrafficTarget
+        apiVersion: access.smi-spec.io/v1alpha3
+        metadata:
+          name: bookstore
+          namespace: bookstore
+        spec:
+          destination:
+            kind: ServiceAccount
+            name: bookstore
+            namespace: bookstore
+          rules:
+          - kind: HTTPRouteGroup
+            name: bookstore-service-routes
+            matches:
+            - buy-a-book
+            - books-bought
+          sources:
+          - kind: ServiceAccount
+            name: bookbuyer
+            namespace: bookbuyer
+          - kind: ServiceAccount
+            name: bookthief
+            namespace: bookthief
+        ---
+        apiVersion: specs.smi-spec.io/v1alpha4
+        kind: HTTPRouteGroup
+        metadata:
+          name: bookstore-service-routes
+          namespace: bookstore
+        spec:
+          matches:
+          - name: books-bought
+            pathRegex: /books-bought
+            methods:
+            - GET
+            headers:
+            - "user-agent": ".*-http-client/*.*"
+            - "client-app": "bookbuyer"
+          - name: buy-a-book
+            pathRegex: ".*a-book.*new"
+            methods:
+            - GET
+        ```
+    
+        ```bash
+        kubectl apply -f $osmFolderPath/yamls/traffic-access.yaml
+        ```
+    
+        
+    
+        - Check traffic starts flowing through
+    
+        ![osm-gen-2](./Assets/osm-gen-2.png)
+    
+        ![osm-gen-2](./Assets/osm-gen-4.png)
+    
+        
+    
+    - ##### Deploy BookStore-V2
+    
+      ```bash
+    kubectl apply -f $osmFolderPath/yamls/bookstore-v2.yaml
       ```
-
-    - **Define APIs behind APIM**
-
-      ![istio-mirroring-2](./Assets/apimesh-1.png)
-
-      ![istio-mirroring-2](./Assets/apimesh-2.png)
-
-      ![istio-mirroring-2](./Assets/apimesh-3.png)
-
+      
       
 
+    ![osm-gen-8](./Assets/osm-gen-8.png)
+    
+    
+    
+    - ##### Split Traffic
+
+
+      - Split traffic between Two versions of **BookStore service - 50/50**
+
+          ```bash
+          kubectl apply -f $osmFolderPath/yamls/traffic-split-50-50.yaml
+          ```
+
+          ```yaml
+          apiVersion: split.smi-spec.io/v1alpha2
+          kind: TrafficSplit
+          metadata:
+            name: bookstore-split
+            namespace: bookstore
+          spec:
+            service: bookstore.bookstore # <root-service>.<namespace>
+            backends:
+            - service: bookstore
+              weight: 50
+            - service: bookstore-v2
+              weight: 50
+          ```
+
+      - Split traffic between Two versions of ***BookStore service - 0/100***
+
+          ```bash
+          kubectl apply -f $osmFolderPath/yamls/traffic-split-v2.yaml
+          ```
+
+          ```yaml
+          apiVersion: split.smi-spec.io/v1alpha2
+          kind: TrafficSplit
+          metadata:
+            name: bookstore-split
+            namespace: bookstore
+          spec:
+            service: bookstore.bookstore # <root-service>.<namespace>
+            backends:
+            - service: bookstore
+              weight: 0
+            - service: bookstore-v2
+              weight: 100
+          
+          ```
+
+          
+
+          ![osm-gen-12](./Assets/osm-gen-12.png)
+
+  
+
+  
+
+
+    - ##### OSM Metrics
+
+      ```bash
+      osm dashboard&
+      ```
+
+      ![osm-metrics-1](./Assets/osm-metrics-1.png)
+
+      ![osm-metrics-2](./Assets/osm-metrics-2.png)
+
+      ![osm-metrics-3](./Assets/osm-metrics-3.png)
+
+      ![osm-metrics-4](./Assets/osm-metrics-4.png)
+
+      ![osm-metrics-5](./Assets/osm-metrics-5.png)
+
+      ![osm-metrics-6](./Assets/osm-metrics-6.png)
+
+      ![osm-metrics-7](./Assets/osm-metrics-7.png)
+
+      ![osm-metrics-8](./Assets/osm-metrics-8.png)
+
+  
+
+  - ##### OSM Tracing
+
+    ```bash
+    kubectl patch meshconfig osm-mesh-config -n osm-system -p '{"spec":{"observability":{"tracing":{"enable":true,"address": "jaeger.osm-system.svc.cluster.local","port":9411,"endpoint":"/api/v2/spans"}}}}'  --type=merge
+    ```
+
+    ![osm-trace1](./Assets/osm-trace1.png)
+
+    ![osm-trace2](./Assets/osm-trace2.png)
+
+    ![osm-trace3](./Assets/osm-trace3.png)
+
+    ![osm-trace4](./Assets/osm-trace4.png)
+
+    ![osm-trace5](./Assets/osm-trace5.png)
+
+    
+
+  - ##### OSM Egress
+
+    ![osm-gen-6](./Assets/osm-gen-6.png)
+
+    
+
+    ```bash
+    kubectl patch meshconfig osm-mesh-config -n osm-system -p '{"spec":{"featureFlags":{"enableEgressPolicy":true}}}'  --type=merge
+    ```
+
+    ```bash
+    kubectl apply -f $osmfolderPath/yamls/curl.yaml
+    ```
+
+    ![osm-gen-7](./Assets/osm-gen-7.png)
+
+    
+
+- ### API Mesh
+
+  - Authentication thru OAuth or OIDC
+  - Deep integration with Azure AD B2B and B2C scenarios
+
+  - APIM Policies
+
+    - Caching
+    - Rate Limiting
+    - Retry
+    - URL Rewrite
+    - Response/Response body transformation e.g. JSON to XML and vice versa
+    - Control Flow and Usage
+    - **Custom Role, RBAC**
+    - .....
+
+
+![apimesh](./Assets/apimesh.png)
+
+
+
+```bash
+#Declare Local variables for APIM
+apimeshPath="./APIMesh"
+
+#Deploy APIM on AKS
+Ref: https://docs.microsoft.com/en-us/azure/api-management/how-to-deploy-self-hosted-gateway-kubernetes
+kubectl create secret generic apimesh-token -n apimesh --from-literal=value="GatewayKey apimesh&202112041054&73uoRfRgH4qcMmDvNzaL4dKRCoFI9IbCYhkJzrrvl1aVAaW5+bCghCsLDdEnMWbQJHiOkzUWzt093ocZRfb6BA=="  --type=Opaque
+kubectl apply -f $apimeshPath/apimesh.yaml -n apimesh
+
+
+#Expose APIM as Internal LoadBalancer Service
+#Check Comments
+Modify $apimeshPath/apimesh.yaml
+
+#Public facing L7 LoadBalancer like Application Gateway would call this Service directly
+#Define RatingsAPI (deloyed earlier) behind APIM
+#Test API calls through Application Gateway
+```
+
+- **Example - APIM Service** 
+
+  ```yaml
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: apimesh
+    annotations:
+      service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+      service.beta.kubernetes.io/azure-load-balancer-internal-subnet: "secondary-ingress-subnet"
+  spec:
+  #Define type as LoadBalancer
+    type: LoadBalancer
+  #Assign a fixed Private IP  
+    loadBalancerIP: 31.0.5.100
+    ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+    - name: https
+      port: 443
+      targetPort: 8081
+    selector:
+      app: apimesh
+  ```
+
+- **Define APIs behind APIM**
+
+  ![istio-mirroring-2](./Assets/apimesh-1.png)
+
+  ![istio-mirroring-2](./Assets/apimesh-2.png)
+
+  ![istio-mirroring-2](./Assets/apimesh-3.png)
+
+  
+  
 - ## What Next
 
   - ### Multi Cluster
