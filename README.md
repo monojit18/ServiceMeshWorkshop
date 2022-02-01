@@ -8,24 +8,23 @@
 
 ## Table Of Contents
 
-- **[K8s High Level Architecture](#K8s-High-Level-Architecture)**
-- **[AKS - High Level Architecture](#AKS-High-Level-Architecture)**
-- **[Service Mesh](#Service-Mesh)**
-- **[Purpose](#Purpose)**
-- **[What to Accomplish](#What-to-Accomplish)**
-- **[HOL](#HOL)**
-
-  - **[Pre Requisites](#Pre-Requisites)**
-  - **[Let us Delve into it](#Let-us-Delve-into-it)**
-  - **[Clone Workshop repo](#Clone-Workshop-repo)**
-  - **[Plan Workshop Tasks](#Plan-Workshop-Tasks)**
-  - **[Service Mesh](#Service-Mesh)**
-    - **[Istio](#Istio)**
-    - **[Linkerd](#Linkerd)**
+- [K8s High Level Architecture](#K8s-High-Level-Architecture)
+- [AKS - High Level Architecture](#AKS-High-Level-Architecture)
+- [Service Mesh](#Service-Mesh)
+- [Purpose](#Purpose)
+- [What to Accomplish](#What-to-Accomplish)
+- [HOL](#HOL)
+  - [Pre Requisites](#Pre-Requisites)
+  - [Let us Delve into it](#Let-us-Delve-into-it)
+  - [Clone Workshop repo](#Clone-Workshop-repo)
+  - [Plan Workshop Tasks](#Plan-Workshop-Tasks)
+  - [Service Mesh](#Service-Mesh)
+    - [Istio](#Istio)
+    - [Linkerd](#Linkerd)
     - [Open Service Mesh](#Open-Service-Mesh)
-    - **[API Mesh](#API-Mesh)**
-  - **[What Next](#What-Next)**
-  - **[References](#References)**
+    - [API Mesh](#API-Mesh)
+  - [What Next](#What-Next)
+  - [References](#References)
 
 ## Introduction
 
