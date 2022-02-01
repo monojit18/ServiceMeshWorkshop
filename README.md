@@ -44,6 +44,12 @@
 
   ![istio-arch](./Assets/service-mesh.png)
 
+  
+
+  Service Mesh on Kubernetes environment provides mamanging capabilities for the microservices hosted in the K8s cluster Uniformly  and Decouples them from the Applications (*Microservices*) layer. This makes it a great tool for Infrastructure architect as well as Developer architects to easily Manage, Observe and Secure the cluster.
+
+  
+
   - Some Service Mesh can have its own Ingress Controller or Gateway - viz. *Istio*
     - Istio works in both ways
     - This workshop rather use Istio's own Gateway rather than requiring an existing one
@@ -63,6 +69,10 @@
     - Fault Injection
     - Multi Cluster Connectivity
     - A/B Testing
+  - **Considerations**
+    - Complexity
+    - Additional Resource Overhead
+    - Additional Latency
 
 ## Purpose
 
@@ -1096,12 +1106,27 @@
     
     - ### Open Service Mesh
     
-      ![osm-demo](./Assets/osm-demo.png)
+      
+    - Lightweight
+      
+      - Extensible
+      
+    - Allows uniformly manage, secure  microservices
     
-      
-      
-      - ##### Define CLI Variables
-
+    - [Reference](https://release-v0-11.docs.openservicemesh.io/docs/getting_started/)
+    
+    - [Demo](https://release-v0-11.docs.openservicemesh.io/docs/getting_started/quickstart/manual_demo/) that we are planning to build on AKS
+    
+    - [AKS Add-on](https://docs.microsoft.com/en-us/azure/aks/open-service-mesh-about) for OSM
+    
+        
+    
+    ![osm-demo](./Assets/osm-demo.png)
+    
+    
+    
+    - ##### Define CLI Variables
+    
       ```bash
       tenantId=""
       subscriptionId=""
@@ -1389,7 +1414,7 @@
     
         
     
-        - Check traffic starts flowing through
+        - Check Traffic starts flowing through
     
         ![osm-gen-2](./Assets/osm-gen-2.png)
     
@@ -1398,17 +1423,17 @@
         
     
     - ##### Deploy BookStore-V2
-    
+
       ```bash
-    kubectl apply -f $osmFolderPath/yamls/bookstore-v2.yaml
+      kubectl apply -f $osmFolderPath/yamls/bookstore-v2.yaml
       ```
-      
+
       
 
-    ![osm-gen-8](./Assets/osm-gen-8.png)
-    
-    
-    
+      ![osm-gen-8](./Assets/osm-gen-8.png)
+
+      
+
     - ##### Split Traffic
 
 
