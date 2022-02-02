@@ -46,33 +46,38 @@
 
   
 
-  Service Mesh on Kubernetes environment provides mamanging capabilities for the microservices hosted in the K8s cluster Uniformly  and Decouples them from the Applications (*Microservices*) layer. This makes it a great tool for Infrastructure architect as well as Developer architects to easily Manage, Observe and Secure the cluster.
+  Service Mesh provides managing capabilities for the micro-services hosted in the Kubernetes cluster uniformly and decouples them from the Applications (*Microservices*) layer.
+
+  This makes it a great tool for Infrastructure architects as well as Developer architects easily Manage, Observe and Secure the cluster
 
   
 
   - Some Service Mesh can have its own Ingress Controller or Gateway - viz. *Istio*
     - Istio works in both ways
     - This workshop rather use Istio's own Gateway rather than requiring an existing one
+    
   - Some Service Mesh might be dependent on existing Ingress Gateway - viz. *Linkerd*
     - Thsi workshop would use Linkerd with Nginx Ingress controller
-  - **Features**
-    - Observability
-    - Ingress Routing
-    - Traffic Management
-      - Ingress Routing
-      - Traffic Splitting
-      - Distruibuted Tracing
-      - Service Mirroring
-      - Circuit Breaking
-  - **Benefits**
-    - Blue/Green Deployment
-    - Fault Injection
-    - Multi Cluster Connectivity
-    - A/B Testing
-  - **Considerations**
-    - Complexity
-    - Additional Resource Overhead
-    - Additional Latency
+    
+      
+    
+  - #### Features
+    
+    - **Observability** - Monitor applications hosted inside the cluster
+    
+    - **Traffic Splitting** - Split Ingress Traffic to different versions of an API. Helps perform - *Blue/Green Deployment, A/B Testing, Fault Injection*
+    
+    - **Distributed Tracing** - Trace/Compare Service to Service calls with visualisation
+    
+    - **Circuit Breaking** - Limit impact of failures due to uncertainty in Network and make services resilient
+    
+      
+    
+  - #### Considerations
+
+    - **Complexity** - More complex for simple requirements
+    - **Resource Overhead** - Additional components needs additional resources - CPU, Memory
+    - **Additional Latency** - Proxies, Policy checks adds latency; so might be a challenge for highly latency sensitive applications
 
 ## Purpose
 
@@ -1119,6 +1124,8 @@
     
     - [AKS Add-on](https://docs.microsoft.com/en-us/azure/aks/open-service-mesh-about) for OSM
     
+    - OSM [Features](https://docs.microsoft.com/en-us/azure/aks/open-service-mesh-about#capabilities-and-features)
+    
         
     
     ![osm-demo](./Assets/osm-demo.png)
@@ -1135,7 +1142,7 @@
       version=""
       aksResourceGroup="aks-train-rg"
       acrName="srvmeshacr"
-      osmFolderPath="$baseFolderPath/OSM"
+      osmFolderPath="<osm-folder-path-in-repo>"
       ```
     
       
@@ -1352,7 +1359,7 @@
     
             
     
-        - Check that services are Not working
+        - **Check that services are Not working**
     
             ![osm-gen-1](./Assets/osm-gen-1.png)
     
@@ -1519,6 +1526,8 @@
     kubectl patch meshconfig osm-mesh-config -n osm-system -p '{"spec":{"observability":{"tracing":{"enable":true,"address": "jaeger.osm-system.svc.cluster.local","port":9411,"endpoint":"/api/v2/spans"}}}}'  --type=merge
     ```
 
+    
+
     ![osm-trace1](./Assets/osm-trace1.png)
 
     ![osm-trace2](./Assets/osm-trace2.png)
@@ -1533,21 +1542,84 @@
 
   - ##### OSM Egress
 
-    ![osm-gen-6](./Assets/osm-gen-6.png)
+    - Egress is pods to the outside world is blocked by default
+
+    - Deploy **curl** application 
+
+      ```bash
+      kubectl create ns curl
+      
+      kubectl apply -f $osmFolderPath/yamls/curl.yaml
+      
+      kubectl get pods -n curl
+      ```
+
+    - Go Inside the **curl** pod
+
+      ```bash
+      kubectl exec -it <curl-pod-name> -n curl -- sh
+      
+      curl http://httpbin.org/get
+      ```
+
+    - Check Egress from **curl** pod fails
+
+      ![osm-gen-6](./Assets/osm-gen-6.png)
 
     
+
+    - Now Enable Egress for Pods
 
     ```bash
     kubectl patch meshconfig osm-mesh-config -n osm-system -p '{"spec":{"featureFlags":{"enableEgressPolicy":true}}}'  --type=merge
     ```
 
+    - Go Inside the **curl** pod again
+
     ```bash
-    kubectl apply -f $osmfolderPath/yamls/curl.yaml
+    kubectl exec -it <curl-pod-name> -n curl -- sh
+    
+    curl http://httpbin.org/get
     ```
+
+    - Check Egress from **curl** pod working as expected
 
     ![osm-gen-7](./Assets/osm-gen-7.png)
 
     
+
+    ##### Cleanup
+
+    - List all *Namespaces* under OSM scanner
+
+      ```bash
+      osm ns list --mesh-name=osm
+      ```
+
+    - Remove *Namespaces* from OSM scanner
+
+      ```bash
+      osm namespace remove bookbuyer --mesh-name=osm
+      osm namespace remove bookstore --mesh-name=osm
+      osm namespace remove bookthief --mesh-name=osm
+      osm namespace remove bookwarehouse --mesh-name=osm
+      ```
+
+    - Restart the deployment as Envoy sidecars are deleted
+
+      ```bash
+      kubectl rollout restart deployment bookbuyer -n bookbuyer
+      kubectl rollout restart deployment bookstore -n bookstore
+      kubectl rollout restart deployment bookthief -n bookthief
+      kubectl rollout restart deployment bookwarehouse -n bookwarehouse
+      ```
+
+    - UnInstall OSM from AKS cluster
+
+      ```bash
+      osm uninstall --mesh-name=osm
+      ```
+
 
 - ### API Mesh
 
