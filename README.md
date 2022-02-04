@@ -529,17 +529,17 @@
 
       
 
-      ![istio-trafficplit](./Assets/istio-mirroring.png)
+      ![istio-trafficplit](./Assets/istio-component.png)
 
       
 
-      - ###### Gateway
+      - #### Gateway
 
         - Single *Gateway* can contain multiple hosts
 
         - Scoped to a *Namespace*
 
-      - ###### Virtual Service
+      - #### Virtual Service
 
         - Single *Virtual Service* can be mapped with multiple *Gateways*
 
@@ -547,7 +547,7 @@
 
         - Scoped to a *Namespace*
 
-      - ###### Destination Rule
+      - #### Destination Rule
 
         - Defines Policies to traffic post Routing
 
