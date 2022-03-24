@@ -28,6 +28,7 @@ spec:
       nodeSelector:
         kubernetes.io/arch: amd64
         kubernetes.io/os: linux
+        agentpool: aksapipool
       containers:
         - name: bookthief
           image: openservicemesh/bookthief:v0.11.1

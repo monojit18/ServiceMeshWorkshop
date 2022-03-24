@@ -29,6 +29,7 @@ spec:
       nodeSelector:
         kubernetes.io/arch: amd64
         kubernetes.io/os: linux
+        agentpool: aksapipool
       containers:
         - name: bookbuyer
           image: openservicemesh/bookbuyer:v0.11.1
