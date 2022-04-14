@@ -40,16 +40,16 @@ az account show
 #Create Service Principal
 az ad sp create-for-rbac --skip-assignment -n $spDisplayName
 {
-  "appId": "",
+  "appId": "d3a1571c-90c8-4bfc-af09-39e54ae168c6",
   "displayName": "http://service-mesh-aks-cluster-sp",
-  "name": "",
-  "password": "",
-  "tenant": ""
+  "name": "d3a1571c-90c8-4bfc-af09-39e54ae168c6",
+  "password": "Y_J5X5.p4Z5Hd3gJv3rl1NPFRxIGfiI~Nj",
+  "tenant": "72f988bf-86f1-41af-91ab-2d7cd011db47"
 }
 
 #Set Service Principal variables
-spAppId=""
-spPassword=""
+spAppId="d3a1571c-90c8-4bfc-af09-39e54ae168c6"
+spPassword="Y_J5X5.p4Z5Hd3gJv3rl1NPFRxIGfiI~Nj"
 
 #Create Resource Group for AKS workloads
 az group create -n $aksResourceGroup -l $location
