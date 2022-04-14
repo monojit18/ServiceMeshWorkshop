@@ -1,0 +1,54 @@
+{{ $deployment := .Values.deployment }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $deployment.name }}
+  namespace: {{ $deployment.namespace }}
+  labels:
+  {{ toYaml $deployment.labels | nindent 4 }}    
+spec:
+  selector:
+    matchLabels:
+    {{ toYaml $deployment.selectorLabels | nindent 6 }}
+  replicas: {{ $deployment.replicas }}
+  strategy:
+    type: {{ $deployment.strategyType }}
+    rollingUpdate:
+      maxSurge: {{ $deployment.maxSurge }}
+      maxUnavailable: {{ $deployment.maxUnavailable }}
+  template:
+    metadata:
+      labels:
+      {{ toYaml $deployment.selectorLabels | nindent 8 }}
+    spec:
+      nodeSelector:
+      {{ toYaml $deployment.nodeSelector | nindent 8 }}      
+      containers:
+      {{ range $container := $deployment.containers }}
+      - name: {{ $container.name }}
+        image: {{ $container.image }}
+        imagePullPolicy: {{ $container.imagePullPolicy }}        
+        resources:
+          requests:
+            memory: {{ $container.memoryRequest }}
+            cpu: {{ $container.cpuRequest }}
+          limits:
+            memory: {{ $container.memoryLimit }}
+            cpu: {{ $container.cpuLimit }}
+        {{ if $container.readinessProbe }}
+        readinessProbe:
+          httpGet:
+            port: {{ $container.readinessPort }}
+            path: {{ $container.readinessPath }}
+        {{ end }}
+        {{ if $container.livenessProbe }}
+        livenessProbe:
+          httpGet:
+            port: {{ $container.livenessPort }}
+            path: {{ $container.livenessPath }}
+        {{ end }}        
+        ports:
+        {{ range $containerPort := $container.containerPorts }}
+        - containerPort: {{ $containerPort }}
+        {{ end }}
+      {{ end }}    

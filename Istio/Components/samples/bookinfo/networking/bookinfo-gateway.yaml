@@ -26,12 +26,6 @@ spec:
   - match:
     - uri:
         exact: /productpage
-    route:
-    - destination:
-        host: productpage
-        port:
-          number: 9080
-  - match:  
     - uri:
         prefix: /static
     - uri:
@@ -44,5 +38,4 @@ spec:
     - destination:
         host: productpage
         port:
-          number: 9080      
-    
+          number: 9080

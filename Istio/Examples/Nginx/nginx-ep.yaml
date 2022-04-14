@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: Endpoints
-metadata:
-  name: nginx-svc
-subsets:
-- addresses:
-  - ip: <ip>
-  ports:
-  - port: 5000

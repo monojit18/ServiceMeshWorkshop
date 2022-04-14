@@ -1,0 +1,35 @@
+deployment:
+  name: nginx-deploy  
+  labels:
+    app: nginx-deploy
+    version: v1
+  selectorLabels:
+    app: nginx-pod
+    version: v1
+  replicas: 1
+  strategyType: RollingUpdate
+  maxSurge: 1
+  maxUnavailable: 0
+  nodeSelector:
+    agentpool: akssyspool
+  containers:
+  - name: nginx-app
+    image: srvmeshacr.azurecr.io/nginx:alpine
+    imagePullPolicy: IfNotPresent
+    memoryRequest: "250Mi"
+    cpuRequest: "100m"
+    memoryLimit: "500Mi"
+    cpuLimit: "200m"
+    containerPorts: [80]
+service:
+  name: nginx-svc
+  selector:
+    app: nginx-pod
+  type: ClusterIP
+  ports:
+  - protocol: TCP
+    name: http
+    port: 80
+    targetPort: 80  
+    
+    

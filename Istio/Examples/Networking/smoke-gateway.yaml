@@ -1,7 +1,7 @@
 apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
-  name: kiali-gateway  
+  name: smoke-gateway
 spec:
   selector:
     istio: ingressgateway # use istio default controller
@@ -19,26 +19,28 @@ spec:
       credentialName: primary-tls-secret
     hosts:
 #Ingress Gateway DNS host of Primary Cluster
-    - "kiali-primary.internal.wkshpdev.com"
+    - "smoke-mesh.internal.wkshpdev.com"
+
 ---
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:
-  name: kiali-virtual-service
+  name: smoke-virtual-service
 spec:
   hosts:
 #Ingress Gateway DNS host of Primary Cluster
-  - "kiali-primary.internal.wkshpdev.com"  
+  - "smoke-mesh.internal.wkshpdev.com"
   gateways:
-  - kiali-gateway
-  http:                  
-  - match:
+  - smoke-gateway
+  http:  
+  #Smoke service
+  - match:  
     - uri:
-        regex: /?(.*)
+        prefix: /healthz
+    rewrite:
+      uri: /
     route:
     - destination:
-        host: kiali
+        host: nginx-svc
         port:
-          number: 20001
-         
-  
+          number: 80      
