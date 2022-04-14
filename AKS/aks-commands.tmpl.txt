@@ -1,0 +1,867 @@
+tenantId=""
+subscriptionId=""
+location="eastus"
+clusterName="primary-mesh-cluster"
+version="1.20.9"
+aksResourceGroup="primary-workshop-rg"
+acrName="srvmeshacr"
+spDisplayName="http://service-mesh-aks-cluster-sp"
+aksVnetName="primary-cluster-vnet"
+aksVnetPrefix="31.0.0.0/21"
+aksVnetId=
+aksSubnetName="primary-cluster-subnet"
+aksSubnetPrefix="31.0.0.0/24"
+aksSubnetId=
+ingressSubnetName="primary-ingress-subnet"
+ingressSubnetPrefix="31.0.1.0/24"
+ingressSubnetId=
+ingressGatewayIP="31.0.1.100"
+aksServicePrefix="31.0.2.0/24"
+dnsServiceIP="31.0.2.10"
+sysNodeSize="Standard_DS2_v2"
+sysNodeCount=3
+maxSysPods=30
+networkPlugin=azure
+networkPolicy=azure
+sysNodePoolName=akssyspool
+vmSetType=VirtualMachineScaleSets
+addons=monitoring
+baseFolderPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop"
+
+#Login to Azure
+az login --tenant $tenantId
+
+#Check Selected Subscription
+az account show
+
+#Set appropriate Subscription, if needed
+#az account set -s $subscriptionId
+
+#Create Service Principal
+az ad sp create-for-rbac --skip-assignment -n $spDisplayName
+{
+  "appId": "",
+  "displayName": "http://service-mesh-aks-cluster-sp",
+  "name": "",
+  "password": "",
+  "tenant": ""
+}
+
+#Set Service Principal variables
+spAppId=""
+spPassword=""
+
+#Create Resource Group for AKS workloads
+az group create -n $aksResourceGroup -l $location
+
+#Deploy Virtual Network
+az network vnet create -n $aksVnetName -g $aksResourceGroup --address-prefixes $aksVnetPrefix
+aksVnetId=$(az network vnet show -n $aksVnetName -g $aksResourceGroup --query="id" -o tsv)
+echo $aksVnetId
+
+#Deploy AKS Subnet inside the Virtual Network
+az network vnet subnet create -n $aksSubnetName --vnet-name $aksVnetName -g $aksResourceGroup --address-prefixes $aksSubnetPrefix
+aksSubnetId=$(az network vnet subnet show -n $aksSubnetName --vnet-name $aksVnetName -g $aksResourceGroup --query="id" -o tsv)
+echo $aksSubnetId
+
+#Deploy AKS Ingress Subnet inside the Virtual Network
+az network vnet subnet create -n $ingressSubnetName --vnet-name $aksVnetName -g $aksResourceGroup --address-prefixes $ingressSubnetPrefix
+ingressSubnetId=$(az network vnet subnet show -n $ingressSubnetName --vnet-name $aksVnetName -g $aksResourceGroup --query="id" -o tsv)
+echo $ingressSubnetId
+
+#Assign Role to the Virtual Network
+az role assignment create --assignee $spAppId --role "Network Contributor" --scope $aksVnetId
+
+#Deploy ACR
+az acr create -n $acrName -g $aksResourceGroup --sku STANDARD --admin-enabled false
+acrId=$(az acr show -n $acrName -g $aksResourceGroup --query="id" -o tsv)
+echo $acrId
+
+#Assign Role to Service Principal for the ACR
+az role assignment create --assignee $spAppId --role "AcrPull" --scope $acrId
+
+#Create Public AKS cluster
+az aks create --name $clusterName \
+--resource-group $aksResourceGroup \
+--kubernetes-version $version --location $location \
+--vnet-subnet-id "$aksSubnetId" --enable-addons $addons \
+--service-cidr $aksServicePrefix --dns-service-ip $dnsServiceIP \
+--node-vm-size $sysNodeSize \
+--node-count $sysNodeCount --max-pods $maxSysPods \
+--service-principal $spAppId \
+--client-secret $spPassword \
+--network-plugin $networkPlugin --network-policy $networkPolicy \
+--nodepool-name $sysNodePoolName --vm-set-type $vmSetType \
+--generate-ssh-keys \
+--disable-rbac \
+--attach-acr $acrName
+
+Service Mesh
+==============
+
+#ISTIO
+
+#Set CLI Variables for Istio
+=================================
+
+primaryResourceGroup=$aksResourceGroup
+primaryClusterName=$clusterName
+secondaryResourceGroup="secondary-workshop-rg"
+secondaryClusterName="secondary-mesh-cluster"
+primaryAcrName=$acrName
+helmPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/AKS/Helm"
+istioPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/Istio"
+
+==================================
+
+#Set Env Variable for Primary Cluster
+#This helps to switch context easily between multiple clusters
+export CTX_CLUSTER1=primary
+
+#Connect to Public AKS Cluster with Primary Context
+az aks get-credentials -g $primaryResourceGroup -n $primaryClusterName --context $CTX_CLUSTER1
+
+#Additional helpful commands
+#Switch context between multiple clusters
+kubectl config use-context <context>
+
+#Download Istio binary
+curl -L https://istio.io/downloadIstio | sh -
+
+#Download specific version of Istio viz. 1.11.3
+curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.11.3 TARGET_ARCH=x86_64 sh -
+
+#The istioctl client binary in the bin/ directory
+#Add the istioctl client to your path (Linux or macOS):
+export PATH=$PWD/bin:$PATH
+
+#Check Cluster health
+kubectl get no --context=$CTX_CLUSTER1
+kubectl get ns --context=$CTX_CLUSTER1
+
+#Create namespaces for Istio
+kubectl create namespace istio-system --context $CTX_CLUSTER1
+kubectl create namespace primary --context $CTX_CLUSTER1
+
+#Install Istio CLI
+#Select Default Istio Profile settings
+#Ingress Gateway with Public IP Address
+istioctl install --context=$CTX_CLUSTER1 --set profile=default -y
+
+#Install Istio with custom configurations
+#Ingress Gateway with Privae IP Address
+#Another Publicly exposed LoadBalancer Service(L7) would be needed to access this Private IP
+istioctl install --context=$CTX_CLUSTER1 -f $istioPath/Components/values-primary.yaml -y
+
+#Following link describes - how to configure Application Gateway with AKS cluster
+#This need to be used if Ingress Gateway is having Private IP
+https://docs.microsoft.com/en-us/azure/application-gateway/configuration-http-settings
+
+#Inject Istio into primary namespace
+#Ensures sidecar container to be added for every deployment in this namespace
+kubectl label namespace primary istio-injection=enabled --context=$CTX_CLUSTER1
+
+#Disable sidecar injection from primary namespace
+#kubectl label namespace primary istio-injection=disabled --context=$CTX_CLUSTER1
+
+#Install Istio Addons
+#This primarily installs all dependencies for observability by Istio viz. Grafana, Kiali dashboard etc.
+kubectl apply -f $istioPath/Components/samples/addons --context=$CTX_CLUSTER1
+
+#Check rollout status of the Kiali deployment - usually takes sometime
+kubectl rollout status deployment/kiali -n istio-system
+
+#Launch Kiali as background process
+istioctl dashboard kiali&
+
+#Might need to Press CTRL+C to allow the job to continue in teh background
+#Bring job to foreground - fg [<job-number>]
+
+#Check Deployments within istio-system
+#Istio Ingress gateway with public or private IP
+kubectl get svc -n istio-system
+
+#Install BookInfo app onto the cluster
+kubectl apply -f $istioPath/Examples/BookInfo/bookinfo.yaml -n primary --context=$CTX_CLUSTER1
+
+#Check Deployed Components
+kubectl get svc -n primary --context=$CTX_CLUSTER1
+kubectl get pods -n primary --context=$CTX_CLUSTER1
+
+#Quick check to test BookInfo app
+podName=$(kubectl get pod -l app=ratings -n primary -o jsonpath='{.items[0].metadata.name}')
+kubectl exec $podName -n primary -c ratings -- curl -sS productpage:9080/productpage | grep -o "<title>.*</title>"
+
+#Need a Gateway to expose the service outside
+#Check Routing definitions
+#Replace <dns-name>
+kubectl apply -f $istioPath/Examples/Networking/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
+
+#Get GATEWAY_URL
+kubectl get svc istio-ingressgateway -n istio-system
+export INGRESS_HOST=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+export INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].port}')
+export SECURE_INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="https")].port}')
+
+#Call services using GATEWAY_URL
+export GATEWAY_URL=$INGRESS_HOST:$INGRESS_PORT
+echo "$GATEWAY_URL"
+
+#Try the follwoing URL in the Browser or do a cUrl
+curl http://$GATEWAY_URL/product
+
+#Need a Gateway to expose the Kiali service outside
+#Check Routing definitions
+#Replace <dns-name>
+kubectl apply -f $istioPath/Examples/Networking/kiali-gateway.yaml -n istio-system --context=$CTX_CLUSTER1
+
+#Launch Kiali in the browser
+http://$INGRESS_HOST:$INGRESS_PORT/
+
+#If used with Applicagtion Gateway then use appropriate Host header in Http Settings
+
+#Deploy more apps - Ratings app (Optional)
+============================================
+#Create aks-workshop-dev namespace
+kubectl create ns aks-workshop-dev --context=$CTX_CLUSTER1
+
+#Inject Istio into aks-workshop-dev namespace
+#Ensures sidecar container to be added for every deployment in this namespace
+kubectl label namespace aks-workshop-dev istio-injection=enabled --context=$CTX_CLUSTER1
+
+#Disable sidecar injection from aks-workshop-dev namespace
+#kubectl label namespace aks-workshop-dev istio-injection=disabled --context=$CTX_CLUSTER1
+
+#Deploy backend Mongo DB as container
+kubectl create ns db --context=$CTX_CLUSTER1
+
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm search repo bitnami
+
+helm install ratingsdb bitnami/mongodb -n db \
+--set auth.username=ratingsuser,auth.password=ratingspwd,auth.database=ratingsdb \
+--set controller.nodeSelector.agentpool=$sysNodePoolName \
+--set controller.defaultBackend.nodeSelector.agentpool=$sysNodePoolName
+
+#Remove backend Mongo DB container
+#helm uninstall ratingsdb
+
+#RatingsApi - Ratings API backend 
+
+#Clone/Fork/Download Souerce code
+https://github.com/monojit18/mslearn-aks-workshop-ratings-api.git
+
+#CD to the director where Dockerfile exists
+#This docker build but performed in a Cloud Agent(VM) by ACR
+az acr build -t $acrName.azurecr.io/ratings-api:v1.0.0 -r $acrName .
+
+kubectl create secret generic aks-workshop-mongo-secret -n aks-workshop-dev --context=$CTX_CLUSTER1 \
+--from-literal=MONGOCONNECTION="mongodb://ratingsuser:ratingspwd@ratingsdb-mongodb.db:27017/ratingsdb"
+
+#Change <acrName> in the $helmPath/ratingsapi-chart/values-dev.yaml
+#Change <agentpool> in the $helmPath/ratingsapi-chart/values-dev.yaml
+helm install ratingsapi-chart -n aks-workshop-dev $helmPath/ratingsapi-chart/ -f $helmPath/ratingsapi-chart/values-dev.yaml
+helm upgrade ratingsapi-chart -n aks-workshop-dev $helmPath/ratingsapi-chart/ -f $helmPath/ratingsapi-chart/values-dev.yaml
+
+#Remove RatinsgAPI app 
+#helm uninstall ratingsapi-chart -n aks-workshop-dev
+
+#RatingsWeb - Ratings App Frontend
+===================================
+#Clone/Fork/Download Souerce code
+https://github.com/monojit18/mslearn-aks-workshop-ratings-web.git
+
+#CD to the director where Dockerfile exists
+#This docker build but performed in a Cloud Agent(VM) by ACR
+az acr build -t $acrName.azurecr.io/ratings-web:v1.0.0 -r $acrName .
+
+#Change <acrName> in the $helmPath/ratingsapi-chart/values-dev.yaml
+#Change <agentpool> in the $helmPath/ratingsapi-chart/values-dev.yaml
+helm install ratingsweb-chart -n aks-workshop-dev $helmPath/ratingsweb-chart/ -f $helmPath/ratingsweb-chart/values-dev.yaml
+helm upgrade ratingsweb-chart -n aks-workshop-dev $helmPath/ratingsweb-chart/ -f $helmPath/ratingsweb-chart/values-dev.yaml
+
+#helm uninstall ratingsweb-chart -n aks-workshop-dev
+
+#Need a Gateway to expose the service outside
+#Check Routing definitions
+kubectl apply -f $istioPath/Examples/Networking/ratingsweb-gateway.yaml -n aks-workshop-dev --context=$CTX_CLUSTER1
+
+#If used with Applicagtion Gateway then use appropriate Host header in Http Settings
+
+======================================================================================================================
+Traffic Shifting
+=================
+#Traffic Shifting
+kubectl apply -f $istioPath/Examples/HelloWorld/helloworld-app.yaml -n primary --context=$CTX_CLUSTER1
+kubectl get po -n primary --context=$CTX_CLUSTER1
+
+#Check Routing definitions
+kubectl apply -f $istioPath/Examples/Networking/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
+
+#Destination Rule
+kubectl apply -f $istioPath/Examples/Networking/helloworld-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
+
+kubectl apply -f $istioPath/Examples/HelloWorld/helloworld-app-v2.yaml -n primary --context=$CTX_CLUSTER1
+kubectl get po -n primary --context=$CTX_CLUSTER1
+
+#Check Routing behaviour
+#UNCOMMENT: Test Traffic Shifting
+#Update Primary Gateway Routes - Change Traffic weight
+kubectl apply -f $istioPath/Examples/Networking/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
+
+#Destination Rule
+kubectl apply -f $istioPath/Examples/Networking/helloworld-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
+
+#Check Routing behaviour again
+
+=====================================================================================
+
+Blue/Green
+===========
+#Blue/Green
+#Deploy PodInfo Blue
+kubectl apply -f $istioPath/Examples/BlueGreen/podinfo-blue.yaml -n primary --context=$CTX_CLUSTER1
+
+#Check Routing definitions
+kubectl apply -f $istioPath/Examples/Networking/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
+
+#Destination Rule
+kubectl apply -f $istioPath/Examples/Networking/podinfo-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
+
+#Deploy PodInfo green
+kubectl apply -f $istioPath/Examples/BlueGreen/podinfo-green.yaml -n primary --context=$CTX_CLUSTER1
+
+#Check Routing behaviour
+#UNCOMMENT: Test Blue/Green
+#Update Primary Gateway Routes - Change Traffic weight
+kubectl apply -f $istioPath/Examples/Networking/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
+
+#Destination Rule
+kubectl apply -f $istioPath/Examples/Networking/podinfo-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
+
+#Check Routing behaviour again
+
+=============================================================================
+
+Fault Injection
+=================
+#Fault Injection
+#Deploy Fault in Ratinsg API
+kubectl apply -f $istioPath/Examples/Network/ratingsfault-virtual-service.yaml -n primary --context=$CTX_CLUSTER1
+
+#Check Comments in the file
+#Introduce Delay
+#Check Routing behaviour
+
+#Introduce Fix
+kubectl apply -f $istioPath/Examples/Networking/reviewsfix-virtual-service.yaml -n primary --context=$CTX_CLUSTER1
+
+#Check Comments in the file
+#Check Routing behaviour
+
+=============================================================================
+
+#Circuit Breaker
+#Deploy HttpBin App
+kubectl apply -f $istioPath/Examples/HttpBin/httpbin.yaml -n primary --context=$CTX_CLUSTER1
+kubectl apply -f $istioPath/Examples/Networking/httpbin-gateway.yaml -n primary --context=$CTX_CLUSTER1
+
+#Deploy HttpBin Destination Rule
+kubectl apply -f $istioPath/Examples/Networking/httpbin-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
+
+#Check Routing behaviour
+#UNCOMMENT: Test Circuit Breaking
+kubectl apply -f $istioPath/Examples/Networking/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
+
+#Generate Load - e.g. JMeter or Fortio or any other Laod Testing client
+
+#Deploy Fortio client
+kubectl apply -f $istioPath/Examples/HttpBin/sample-client/fortio-deploy.yaml -n primary --context=$CTX_CLUSTER1
+
+#Make calls from Fortio client
+export FORTIO_POD=$(kubectl get pods -l app=fortio -o 'jsonpath={.items[0].metadata.name}')
+kubectl exec "$FORTIO_POD" -c fortio -- /usr/bin/fortio curl -quiet http://httpbin:8000/get
+
+#Check Routing behaviour
+#Observer many calls being failed and circuit is broken and joined automatically
+#Change parameters in the $istioPath/Examples/Networking/httpbin-destination-rule.yaml file
+#Play around and see the chnage in the behaviour 
+
+Service Mirroring or Shadowing
+=================================
+#Service Mirroring or Shadowing
+#Create Secondary Cluster - CLI or Portal
+export CTX_CLUSTER2=secondary
+
+#Connect to Public AKS Cluster with Primary Context
+az aks get-credentials -g $primaryResourceGroup -n $secondaryClusterName --context $CTX_CLUSTER2
+
+kubectl config use-context $CTX_CLUSTER2
+
+#Check Cluster Health - Secondary
+kubectl get no --context=$CTX_CLUSTER2
+kubectl get ns --context=$CTX_CLUSTER2
+kubectl create namespace istio-system --context $CTX_CLUSTER2
+kubectl create namespace secondary --context $CTX_CLUSTER2
+
+#Install Istio CLI
+#Select Default Istio Profile settings
+#Ingress Gateway with Public IP Address
+istioctl install --context=$CTX_CLUSTER2 --set profile=default -y
+
+#Install Istio with custom configurations
+#Ingress Gateway with Privae IP Address
+#Another Publicly exposed LoadBalancer Service(L7) would be needed to access this Private IP
+istioctl install --context=$CTX_CLUSTER2 -f $istioPath/Components/values-secondary.yaml -y
+
+#Inject Istio into Secondary namespace of the cluster 
+#This ensures sidecar container to be added for every deployment in this namespace
+kubectl label namespace secondary istio-injection=enabled --context=$CTX_CLUSTER2
+
+#Install Istio Addons
+#This primarily installs all dependencies for observability by Istio viz. Grafana, Kiali dashboard etc.
+kubectl apply -f $istioPath/Components/samples/addons --context=$CTX_CLUSTER2
+
+kubectl get svc istio-ingressgateway -n istio-system
+export INGRESS_HOST=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+export INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].port}')
+export SECURE_INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="https")].port}')
+
+export GATEWAY_URL2=$INGRESS_HOST:$INGRESS_PORT
+echo "$GATEWAY_URL2"
+
+kubectl apply -f $istioPath/Examples/HelloWorld/helloworld-app-v2.yaml -n secondary --context=$CTX_CLUSTER2
+kubectl get po -n secondary --context=$CTX_CLUSTER2
+
+#Need a Gateway to expose the service outside
+#Check Routing definitions
+#Replace <dns-name>
+kubectl apply -f $istioPath/Examples/Networking/secondary-gateway.yaml -n secondary --context=$CTX_CLUSTER2
+
+#Destination Rule
+kubectl apply -f $istioPath/Examples/Networking/helloworld-v2-destination-rule.yaml -n secondary --context=$CTX_CLUSTER2
+
+kubectl get svc -n secondary --context=$CTX_CLUSTER2
+kubectl describe svc -n secondary --context=$CTX_CLUSTER2
+kubectl get svc -A --context=$CTX_CLUSTER2
+
+#Switch to the Primary Cluster
+kubectl config use-context $CTX_CLUSTER1
+
+#Check Routing definitions
+kubectl apply -f $istioPath/Examples/Networking/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
+
+#Deploy components so that Mirroring can work
+#Replace <dns-name>
+kubectl apply -f $istioPath/Examples/Networking/primary-serviceentry.yaml -n primary --context=$CTX_CLUSTER1
+
+#Destination Rule
+#Replace <dns-name>
+kubectl apply -f $istioPath/Examples/Networking/helloworld-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
+
+kubectl get svc -n primary --context=$CTX_CLUSTER1
+kubectl describe svc -n primary --context=$CTX_CLUSTER1
+kubectl get svc -A --context=$CTX_CLUSTER1
+
+#Call helloworld-v1
+#Observe that all calls being replicated to helloworld-v2 of secondary cluster
+
+
+Cleanup
+========
+#Cleanup
+
+#Uninstall Istio setup - primary cluster
+istioctl x uninstall --set profile=default --purge --context=$CTX_CLUSTER1
+kubectl delete namespace istio-system --context=$CTX_CLUSTER1
+
+#Uninstall Istio setup - secondary cluster
+istioctl x uninstall --set profile=default --purge --context=$CTX_CLUSTER2
+kubectl delete namespace istio-system --context=$CTX_CLUSTER2
+
+LINKERD
+========
+#LINKERD
+
+Define CLI Variables for Linkerd
+==================================
+
+linkerdResourceGroup="secondary-workshop-rg"
+linkerdClusterName="secondary-mesh-cluster"
+linkerdNSName="linkerd-service-mesh"
+linkerdAcrName="scdmeshacr"
+linkerdIngressName="linkerd-ing"
+linkerdIngressNSName="$linkerdIngressName-ns"
+linkerdIngressDeployName=""
+linkerdSysNodePoolName="agentpool"
+helmPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/AKS/Helm"
+linkerdPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/Linkerd"
+
+#Connect to Secondary Cluster - CLI or Portal
+export CTX_CLUSTER2=secondary
+
+kubectl config use-context $CTX_CLUSTER2
+
+#Install Nginx Ingress Controller
+#Create Ingress Namespace
+kubectl create namespace $linkerdIngressNSName
+kubectl label namespace $linkerdIngressNSName name=$linkerdIngressNSName
+
+#Install nginx using Helm
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+
+#Install Nginx Ingress controller
+helm install $linkerdIngressName ingress-nginx/ingress-nginx --namespace $linkerdIngressNSName \
+--set controller.nodeSelector.agentpool=$linkerdSysNodePoolName \
+--set controller.defaultBackend.nodeSelector.agentpool=$linkerdSysNodePoolName \
+
+#UNCOMMENT: Install Nginx Ingress controller as an Internal LoadBalancer - Private IP Address
+#IMPORTANT: 
+#--set controller.service.loadBalancerIP=$backendIpAddress \
+#--set controller.service.annotations.'service\.beta\.kubernetes\.io/azure-load-balancer-internal-subnet'=$aksIngressSubnetName
+
+Ingress
+=============
+helm create ingress-chart
+
+helm install  ingress-chart -n $linkerdNSName $helmPath/ingress-chart/ -f $helmPath/ingress-chart/values-dev.yaml
+helm upgrade  ingress-chart -n $linkerdNSName $helmPath/ingress-chart/ -f $helmPath/ingress-chart/values-dev.yaml
+
+#UnInstall ingress
+#helm uninstall ingress-chart -n secondary
+
+Linkerd
+=======
+
+Download linkerdctl
+=====================
+export LINKERD2_VERSION=stable-2.10.0
+
+curl -sL https://run.linkerd.io/install | sh
+linkerd check --pre
+linkerd version
+
+Installations Linkerd
+======================
+linkerd install  | kubectl apply -f -
+linkerd check
+
+Install Viz for Linkerd
+=========================
+linkerd viz install | kubectl apply -f -
+linkerd viz check
+linkerd viz dashboard&
+
+Install Jaeger for Linkerd
+===========================
+linkerd jaeger install | kubectl apply -f -
+linkerd jaeger check
+linkerd jaeger dashboard&
+
+Inject Linkerd into Ingress Cntroller
+=======================================
+kubectl -n $linkerdIngressNSName get deploy/$linkerdIngressDeployName -o yaml | linkerd inject --ingress - | kubectl apply -f -
+
+Inject Linkerd into Namespaces
+================================
+kubectl get deploy -n secondary -o yaml | linkerd inject - | kubectl apply -f -
+linkerd viz dashboard&
+
+Traffic Split
+==============
+k create ns emojivoto
+
+kubectl config set-context --current --namespace=emojivoto
+
+#Deploy Ingress 
+kubectl apply -f $linkerdPath/Examples/EmojiVoto/emojivoto-ingress.yaml 
+kubectl apply -f $linkerdPath/Examples/EmojiVoto/emojivoto.yaml
+
+#Inject Linkerd into emojivoto namespace
+kubectl get deploy -n emojivoto -o yaml | linkerd inject - | kubectl apply -f -
+
+#Display Linkerd dashboard as a background service
+linkerd viz dashboard&
+
+#Split Traffic
+kubectl apply -f $linkerdPath/Examples/EmojiVoto/emojivoto-traffic-split.yaml
+
+#UNCOMMENT: Test Traffic Shifting
+#Modify Traffic weight
+kubectl apply -f $linkerdPath/Examples/EmojiVoto/emojivoto-traffic-split.yaml
+
+#Check Routing behaviour
+
+Blue/Green
+==============
+k create ns test
+
+kubectl config set-context --current --namespace=test
+
+#Deploy frontend-blue app
+kubectl apply -f $linkerdPath/Examples/BlueGreen/frontend-blue.yaml
+
+#Deploy frontend-green app
+kubectl apply -f $linkerdPath/Examples/BlueGreen/frontend-green.yaml
+
+#Deploy Ingress 
+kubectl apply -f $linkerdPath/Examples/BlueGreen/frontend-ingress.yaml
+
+#Check Comments
+
+#Inject Linkerd into test namespace
+kubectl get deploy -n test -o yaml | linkerd inject - | kubectl apply -f -
+
+#Display Linkerd dashboard as a background service
+linkerd viz dashboard&
+
+#Split Traffic
+kubectl apply -f $linkerdPath/Examples/BlueGreen/frontend-traffic-split.yaml
+
+#UNCOMMENT: Test Traffic Shifting
+#Modify Traffic weight
+kubectl apply -f $linkerdPath/Examples/EmojiVoto/frontend-traffic-split.yaml
+
+#Check Routing behaviour
+
+
+Distributed Tracing
+=======================================
+kubectl -n emojivoto set env --all deploy OC_AGENT_HOST=collector.linkerd-jaeger:55678
+for ((i=1;i<=100;i++)); do   curl -kubectl "https://emojivoto.wkshpdev.com/api/list"; done
+
+#Check Distributed Tracing in Jaeger dashboard
+
+#Deploy more apps - Ratings app (Optional)
+============================================
+#Deploy backend DB as container
+kubectl create ns db --context=$CTX_CLUSTER1
+
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
+
+helm install ratingsdb bitnami/mongodb -n db \
+--set auth.username=ratingsuser,auth.password=ratingspwd,auth.database=ratingsdb \
+--set controller.nodeSelector.agentpool=agentpool \
+--set controller.defaultBackend.nodeSelector.agentpool=agentpool
+
+
+#RatingsApi - Ratings API backend 
+
+#Clone/Fork/Download Souerce code
+https://github.com/monojit18/mslearn-aks-workshop-ratings-api.git
+
+#CD to the director where Dockerfile exists
+#This docker build but performed in a Cloud Agent(VM) by ACR
+az acr build -t $acrName.azurecr.io/ratings-api:v1.0.0 -r $acrName .
+
+kubectl create secret generic aks-workshop-mongo-secret -n aks-workshop-dev \
+--from-literal=MONGOCONNECTION="mongodb://ratingsuser:ratingspwd@ratingsdb-mongodb.db:27017/ratingsdb"
+
+#Change <acrName> in the $helmPath/ratingsapi-chart/values-dev.yaml
+#Change <agentpool> in the $helmPath/ratingsapi-chart/values-dev.yaml
+helm install ratingsapi-chart -n aks-workshop-dev $helmPath/ratingsapi-chart/ -f $helmPath/ratingsapi-chart/values-dev.yaml
+helm upgrade ratingsapi-chart -n aks-workshop-dev $helmPath/ratingsapi-chart/ -f $helmPath/ratingsapi-chart/values-dev.yaml
+
+#helm uninstall ratingsapi-chart -n aks-workshop-dev
+
+
+#RatingsWeb - Ratings App Frontend
+===================================
+
+#Clone/Fork/Download Souerce code
+https://github.com/monojit18/mslearn-aks-workshop-ratings-web.git
+
+#CD to the director where Dockerfile exists
+#This docker build but performed in a Cloud Agent(VM) by ACR
+az acr build -t $acrName.azurecr.io/ratings-web:v1.0.0 -r $acrName .
+
+#Change <acrName> in the $helmPath/ratingsapi-chart/values-dev.yaml
+#Change <agentpool> in the $helmPath/ratingsapi-chart/values-dev.yaml
+helm install ratingsweb-chart -n aks-workshop-dev $helmPath/ratingsweb-chart/ -f $helmPath/ratingsweb-chart/values-dev.yaml
+helm upgrade ratingsweb-chart -n aks-workshop-dev $helmPath/ratingsweb-chart/ -f $helmPath/ratingsweb-chart/values-dev.yaml
+
+#helm uninstall ratingsweb-chart -n aks-workshop-dev
+
+======================================================================================================================
+
+UnInject Linkerd from Ingress Cntroller
+=======================================
+
+Uninject Linkerd from Ingress Cntroller
+=======================================
+#kubectl -n $linkerdIngressNSName get deploy/$linkerdIngressDeployName  -o yaml | linkerd uninject - | kubectl apply -f -
+
+Uninject Linkerd from Namespaces
+==================================
+#kubectl get ns/$workingNSName -o yaml | linkerd uninject - | kubectl apply -f -
+
+
+Uninstall Linkerd
+=======================================
+#linkerd viz uninstall | kubectl delete -f -
+#linkerd buoyant uninstall | kubectl delete -f -
+#linkerd jaeger uninstall | kubectl delete -f -
+#kubectl get deploy/emojivoto -n secondary -o yaml | linkerd uninject - | kubectl apply -f -
+#linkerd uninstall | kubectl delete -f -
+
+
+==========================================================================================
+
+API MESH
+=========
+#Declare Local variables for APIM
+apimeshPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/APIMesh"
+
+#Deploy APIM on AKS
+Ref: https://docs.microsoft.com/en-us/azure/api-management/how-to-deploy-self-hosted-gateway-kubernetes
+kubectl create secret generic apimesh-token -n apimesh --from-literal=value="GatewayKey apimesh&202112041054&73uoRfRgH4qcMmDvNzaL4dKRCoFI9IbCYhkJzrrvl1aVAaW5+bCghCsLDdEnMWbQJHiOkzUWzt093ocZRfb6BA=="  --type=Opaque
+kubectl apply -f $apimeshPath/apimesh.yaml -n apimesh
+
+
+#Expose APIM as Internal LoadBalancer Service
+#Check Comments
+Modify $apimeshPath/apimesh.yaml
+
+#Public facing L7 LoadBalancer like Application Gateway would call this Service directly
+#Define RatingsAPI (deloyed earlier) behind APIM
+#Test API calls through Application Gateway
+
+Open Service Mesh
+====================
+
+clusterName="aks-train-cluster"
+aksResourceGroup="aks-train-rg"
+az aks get-credentials -g $aksResourceGroup --name $clusterName --admin --overwrite
+
+osm install \
+    --set=OpenServiceMesh.enablePermissiveTrafficPolicy=false \
+    --set=OpenServiceMesh.deployPrometheus=true \
+    --set=OpenServiceMesh.deployGrafana=true \
+    --set=OpenServiceMesh.deployJaeger=true
+
+
+kubectl create namespace bookstore
+kubectl create namespace bookbuyer
+kubectl create namespace bookthief
+kubectl create namespace bookwarehouse
+
+osm namespace add bookstore
+osm namespace add bookbuyer
+osm namespace add bookthief
+osm namespace add bookwarehouse
+
+osm metrics enable --namespace bookstore
+osm metrics enable --namespace bookbuyer
+osm metrics enable --namespace bookthief
+osm metrics enable --namespace bookwarehouse
+
+kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.11/docs/example/manifests/apps/bookbuyer.yaml
+kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.11/docs/example/manifests/apps/bookthief.yaml
+kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.11/docs/example/manifests/apps/bookstore.yaml
+kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.11/docs/example/manifests/apps/bookwarehouse.yaml
+
+kubectl get deployments -n bookbuyer
+kubectl get deployments -n bookthief
+kubectl get deployments -n bookstore
+kubectl get deployments -n bookwarehouse
+
+kubectl get pods -n bookbuyer
+kubectl get pods -n bookthief
+kubectl get pods -n bookstore
+kubectl get pods -n bookwarehouse
+
+kubectl get services -n bookstore
+kubectl get services -n bookwarehouse
+
+kubectl get endpoints -n bookstore
+kubectl get endpoints -n bookwarehouse
+
+cp .env.example .env
+./scripts/port-forward-all.sh
+
+kubectl get meshconfig osm-mesh-config -n osm-system -o yaml
+
+kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.11/docs/example/manifests/access/traffic-access-v1.yaml
+kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.11/docs/example/manifests/access/traffic-access-v1-allow-bookthief.yaml
+kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.11/docs/example/manifests/apps/bookstore-v2.yaml
+
+kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.11/docs/example/manifests/split/traffic-split-v1.yaml
+kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.11/docs/example/manifests/split/traffic-split-50-50.yaml
+kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/release-v0.11/docs/example/manifests/split/traffic-split-v2.yaml
+
+#Nginx Ingress
+================
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+
+helm install osm-nginx-ingess ingress-nginx/ingress-nginx --namespace osm-nginx-ingess-ns \
+--set controller.nodeSelector.agentpool=agentpool \
+--set controller.defaultBackend.nodeSelector.agentpool=agentpool
+
+#helm install osm-nginx-ingess -n osm-nginx-ingess-ns
+
+kubectl create secret tls osm-tls-secret -n bookstore --cert="/Users/monojitdattams/Development/Projects/Helpers/Misc/Certs/WkshpDev.com/Star-WkshpDev/PEMs/star_wkshpdev_com_pem_116159745/star_wkshpdev_com_116159745star_wkshpdev_com.pem" --key="/Users/monojitdattams/Development/Projects/Helpers/Misc/Certs/WkshpDev.com/Star-WkshpDev/PFXs/star.wkshpdev.com.key"
+
+OSM Ingress
+================
+kubectl apply -f $baseFolderPath/OSM/yamls/osm-ingress.yaml
+
+
+Traffic Access
+================
+kubectl apply -f $baseFolderPath/OSM/yamls/traffic-access.yaml
+
+Traffic Split
+==============
+kubectl apply -f $baseFolderPath/OSM/yamls/traffic-split-50-50.yaml
+kubectl apply -f $baseFolderPath/OSM/yamls/traffic-split-v1.yaml
+kubectl apply -f $baseFolderPath/OSM/yamls/traffic-split-v2.yaml
+
+Metrics dashboard
+==================
+osm dashboard&
+
+Tracing
+========
+
+kubectl patch meshconfig osm-mesh-config -n osm-system -p '{"spec":{"observability":{"tracing":{"enable":true,"address": "jaeger.osm-system.svc.cluster.local","port":9411,"endpoint":"/api/v2/spans"}}}}'  --type=merge
+
+
+Egress
+=======
+kubectl patch meshconfig osm-mesh-config -n osm-system -p '{"spec":{"featureFlags":{"enableEgressPolicy":true}}}'  --type=merge
+kubectl apply -f https://raw.githubusercontent.com/openservicemesh/osm/main/docs/example/manifests/samples/curl/curl.yaml
+
+#Uninstall
+============
+osm ns list --mesh-name=osm
+osm namespace remove bookbuyer --mesh-name=osm
+osm namespace remove bookstore --mesh-name=osm
+osm namespace remove bookthief --mesh-name=osm
+osm namespace remove bookwarehouse --mesh-name=osm
+
+k rollout restart deployment bookbuyer -n bookbuyer
+k rollout restart deployment bookstore -n bookstore
+k rollout restart deployment bookthief -n bookthief
+k rollout restart deployment bookwarehouse -n bookwarehouse
+
+osm uninstall --mesh-name=osm
+k delete namespace bookbuyer
+k delete namespace bookstore
+k delete namespace bookthief
+k delete namespace bookwarehouse
+
+k delete crd meshconfigs.config.openservicemesh.io
+k delete crd multiclusterservices.config.openservicemesh.io
+k delete crd egresses.policy.openservicemesh.io
+k delete crd ingressbackends.policy.openservicemesh.io
+k delete crd httproutegroups.specs.smi-spec.io
+k delete crd tcproutes.specs.smi-spec.io
+k delete crd traffictargets.access.smi-spec.io
+k delete crd trafficsplits.split.smi-spec.io
+
+#az aks delete -g $aksResourceGroup --name $clusterName --yes
+
+
