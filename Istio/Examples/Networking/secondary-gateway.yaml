@@ -32,7 +32,7 @@ spec:
   
   #IMPORTANT: Shadow Suffix - All Mirrored service is sent from primary cluster
   # with a Suffix called - Shadow
-  - api-secondary.wkshpdev.com-shadow
+  - "*-shadow"
   gateways:
   - secondary-gateway
   http:

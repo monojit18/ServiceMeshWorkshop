@@ -19,7 +19,7 @@ spec:
       credentialName: primary-tls-secret
     hosts:
 #Ingress Gateway DNS host of Primary Cluster    
-    - "api-primary.internal.wkshpdev.com"
+    - api-primary.internal.wkshpdev.com
 
 ---
 apiVersion: networking.istio.io/v1alpha3
@@ -29,7 +29,7 @@ metadata:
 spec:
   hosts:
 #Ingress Gateway DNS host of Primary Cluster  
-  - "api-primary.internal.wkshpdev.com"
+  - api-primary.internal.wkshpdev.com
   gateways:
   - primary-gateway  
   http:
@@ -78,7 +78,7 @@ spec:
 #UNCOMMENT: Test Traffic Mirroring Or Shadowing
     mirror:
       host: api-secondary.wkshpdev.com  
-      # subset: v2    
+      subset: v2    
       port:
         number: 443
     mirrorPercentage:

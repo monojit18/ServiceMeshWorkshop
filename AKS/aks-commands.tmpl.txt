@@ -538,16 +538,16 @@ kubectl get svc -A --context=$CTX_CLUSTER2
 #Switch to the Primary Cluster
 kubectl config use-context $CTX_CLUSTER1
 
-#Check Routing definitions
-kubectl apply -f $istioPath/Examples/Networking/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
+#Destination Rule
+#Replace <dns-name>
+kubectl apply -f $istioPath/Examples/Networking/helloworld-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
 
 #Deploy components so that Mirroring can work
 #Replace <dns-name>
 kubectl apply -f $istioPath/Examples/Networking/primary-serviceentry.yaml -n primary --context=$CTX_CLUSTER1
 
-#Destination Rule
-#Replace <dns-name>
-kubectl apply -f $istioPath/Examples/Networking/helloworld-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
+#Check Routing definitions
+kubectl apply -f $istioPath/Examples/Networking/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
 
 kubectl get svc -n primary --context=$CTX_CLUSTER1
 kubectl describe svc -n primary --context=$CTX_CLUSTER1
