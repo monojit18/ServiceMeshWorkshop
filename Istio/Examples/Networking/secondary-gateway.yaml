@@ -19,7 +19,7 @@ spec:
       credentialName: secondary-tls-secret
     hosts:
 #Ingress Gateway DNS host of Secondary Cluster    
-    - "api-secondary.internal.wkshpdev.com"
+    - "*"
 
 ---
 apiVersion: networking.istio.io/v1alpha3
@@ -28,11 +28,11 @@ metadata:
   name: secondary-virtual-service
 spec:
   hosts:
-  - "api-secondary.internal.wkshpdev.com"
+  - api-secondary.internal.wkshpdev.com
   
   #IMPORTANT: Shadow Suffix - All Mirrored service is sent from primary cluster
   # with a Suffix called - Shadow
-  - "api-secondary.internal.wkshpdev.com-shadow"
+  - api-secondary.wkshpdev.com-shadow
   gateways:
   - secondary-gateway
   http:

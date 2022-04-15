@@ -62,26 +62,27 @@ spec:
     - destination:
         host: helloworld
   #UNCOMMENT: Introduce versioning        
-        # subset: v1
+        subset: v1
         port:
           number: 5000   
       weight: 100
 
 #UNCOMMENT: Test Traffic Shifting
-    - destination:
-        host: helloworld
-        # subset: v2
-        port:
-          number: 5000   
-      weight: 0
+    # - destination:
+    #     host: helloworld
+    #     subset: v2
+    #     port:
+    #       number: 5000   
+    #   weight: 0
 
 #UNCOMMENT: Test Traffic Mirroring Or Shadowing
-    # mirror:
-    #   host: "seocndsry-mesh.wkshpdev"
-    #   port:
-    #     number: 80
-    # mirrorPercentage:
-    #   value: 100
+    mirror:
+      host: api-secondary.wkshpdev.com  
+      # subset: v2    
+      port:
+        number: 443
+    mirrorPercentage:
+      value: 100
 
 #UNCOMMENT: Test Circuit Breaking
   - match:

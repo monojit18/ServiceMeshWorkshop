@@ -4,10 +4,10 @@ metadata:
   name: primary-serviceentry  
 spec:
   hosts:
-  - "seocndsry-mesh.<dns-name>"
+  - api-secondary.wkshpdev.com
   ports:
-  - number: 80
-    name: http
-    protocol: HTTP
+  - number: 443
+    name: https
+    protocol: TLS
   location: MESH_EXTERNAL
   resolution: DNS
