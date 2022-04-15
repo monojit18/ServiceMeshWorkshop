@@ -1,0 +1,46 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: smoke-gateway
+spec:
+  selector:
+    istio: ingressgateway # use istio default controller
+  servers:
+  # - port:
+  #     number: 80
+  #     name: http
+  #     protocol: HTTP
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: secondary-tls-secret
+    hosts:
+#Ingress Gateway DNS host of Primary Cluster
+    - "smoke-secondary-mesh.internal.wkshpdev.com"
+
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: smoke-virtual-service
+spec:
+  hosts:
+#Ingress Gateway DNS host of Primary Cluster
+  - "smoke-secondary-mesh.internal.wkshpdev.com"
+  gateways:
+  - smoke-gateway
+  http:  
+  #Smoke service
+  - match:  
+    - uri:
+        prefix: /healthz
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        host: nginx-svc
+        port:
+          number: 80      

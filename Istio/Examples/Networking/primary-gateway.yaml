@@ -6,13 +6,20 @@ spec:
   selector:
     istio: ingressgateway # use istio default controller
   servers:
+  # - port:
+  #     number: 80
+  #     name: http
+  #     protocol: HTTP
   - port:
-      number: 80
-      name: http
-      protocol: HTTP
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: primary-tls-secret
     hosts:
-    #Ingress Gateway DNS host of Primary Cluster
-    - "primary-mesh.<dns-name>"
+#Ingress Gateway DNS host of Primary Cluster    
+    - "api-primary.internal.wkshpdev.com"
 
 ---
 apiVersion: networking.istio.io/v1alpha3
@@ -21,11 +28,12 @@ metadata:
   name: primary-virtual-service
 spec:
   hosts:
-  #Ingress Gateway DNS host of Primary Cluster
-  - "primary-mesh.<dns-name>"
+#Ingress Gateway DNS host of Primary Cluster  
+  - "api-primary.internal.wkshpdev.com"
   gateways:
-  - primary-gateway
+  - primary-gateway  
   http:
+  #PodInfo service
   - match:
     - uri:
         prefix: /podinfo
@@ -45,46 +53,47 @@ spec:
     #     subset: green 
     #     port:
     #       number: 9898 
-    #   weight: 0
+    #   weight: 50
+  #Hello World service
   - match:  
     - uri:
-        exact: /hello
+        prefix: /hello
     route:
     - destination:
         host: helloworld
-        subset: v1
+  #UNCOMMENT: Introduce versioning        
+        # subset: v1
         port:
           number: 5000   
       weight: 100
 
 #UNCOMMENT: Test Traffic Shifting
-    # - destination:
-    #     host: helloworld
-    #     subset: v2
-    #     port:
-    #       number: 5000   
-    #   weight: 0
+    - destination:
+        host: helloworld
+        # subset: v2
+        port:
+          number: 5000   
+      weight: 0
 
 #UNCOMMENT: Test Traffic Mirroring Or Shadowing
     # mirror:
-    #   host: "seocndsry-mesh.<dns-name>"
+    #   host: "seocndsry-mesh.wkshpdev"
     #   port:
     #     number: 80
     # mirrorPercentage:
     #   value: 100
 
 #UNCOMMENT: Test Circuit Breaking
-  # - match:
-  #   - uri:
-  #       prefix: /httpbin
-  #   rewrite:
-  #     uri: / 
-  #   route:
-  #   - destination:
-  #       host: httpbin
-  #       port:
-  #         number: 8000
-
+  - match:
+    - uri:
+        prefix: /httpbin
+    rewrite:
+      uri: / 
+    route:
+    - destination:
+        host: httpbin
+        port:
+          number: 8000
 #Bookinfo service
   - match:
     - uri:
@@ -110,4 +119,3 @@ spec:
         host: productpage
         port:
           number: 9080
-    
