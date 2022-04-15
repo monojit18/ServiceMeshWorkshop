@@ -1,7 +1,7 @@
 apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
-  name: secondary-gateway
+  name: kiali-gateway
 spec:
   selector:
     istio: ingressgateway # use istio default controller
@@ -18,31 +18,27 @@ spec:
       mode: SIMPLE
       credentialName: secondary-tls-secret
     hosts:
-#Ingress Gateway DNS host of Secondary Cluster    
-    - "api-secondary.internal.wkshpdev.com"
-
+#Ingress Gateway DNS host of Primary Cluster
+    - "kiali-secondary.internal.wkshpdev.com"
 ---
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:
-  name: secondary-virtual-service
+  name: kiali-virtual-service
 spec:
   hosts:
-  - "api-secondary.internal.wkshpdev.com"
-  
-  #IMPORTANT: Shadow Suffix - All Mirrored service is sent from primary cluster
-  # with a Suffix called - Shadow
-  - "api-secondary.internal.wkshpdev.com-shadow"
+#Ingress Gateway DNS host of Primary Cluster
+  - "kiali-secondary.internal.wkshpdev.com"  
   gateways:
-  - secondary-gateway
-  http:
-#Mirored service
+  - kiali-gateway
+  http:                  
   - match:
     - uri:
-        prefix: /hello
+        regex: /?(.*)
     route:
     - destination:
-        host: helloworld
-        subset: v2
+        host: kiali
         port:
-          number: 5000      
+          number: 20001
+         
+  
