@@ -103,12 +103,24 @@ Service Mesh
 
 #Set CLI Variables for Istio
 =================================
-
 primaryResourceGroup=$aksResourceGroup
 primaryClusterName=$clusterName
-secondaryResourceGroup="secondary-workshop-rg"
-secondaryClusterName="secondary-mesh-cluster"
 primaryAcrName=$acrName
+secondaryResourceGroup=$aksResourceGroup
+secondaryClusterName="secondary-mesh-cluster"
+aksVnetName2="secondary-cluster-vnet"
+aksVnetPrefix2="25.0.0.0/21"
+aksVnetId2=
+aksSubnetName2="secondary-cluster-subnet"
+aksSubnetPrefix2="25.0.0.0/24"
+aksSubnetId2=
+ingressSubnetName2="secondary-ingress-subnet"
+ingressSubnetPrefix2="25.0.1.0/24"
+ingressSubnetId2=
+ingressGatewayIP2="25.0.1.100"
+aksServicePrefix2="25.0.2.0/24"
+dnsServiceIP2="25.0.2.10"
+secondaryAcrName=$acrName
 helmPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/AKS/Helm"
 istioPath="/Users/monojitdattams/Development/Projects/Workshops/AKSWorkshop/ServiceMeshWorkshop/Istio"
 
@@ -157,6 +169,13 @@ istioctl install --context=$CTX_CLUSTER1 -f $istioPath/Components/values-primary
 #This need to be used if Ingress Gateway is having Private IP
 https://docs.microsoft.com/en-us/azure/application-gateway/configuration-http-settings
 
+#Secret for TLS for all namespaces
+kubectl create secret tls primary-tls-secret -n istio-system --cert="$baseFolderPath/Certs/star_internal_wkshpdev_com.pem" --key="$baseFolderPath/Certs/star.internal.wkshpdev.com.key"
+
+kubectl create ns smoke --context=$CTX_CLUSTER1
+kubectl label namespace smoke istio-injection=enabled --context=$CTX_CLUSTER1
+kubectl apply -f $istioPath/Networking/smoke-gateway.yaml -n smoke --context=$CTX_CLUSTER1
+
 #Inject Istio into primary namespace
 #Ensures sidecar container to be added for every deployment in this namespace
 kubectl label namespace primary istio-injection=enabled --context=$CTX_CLUSTER1
@@ -169,7 +188,7 @@ kubectl label namespace primary istio-injection=enabled --context=$CTX_CLUSTER1
 kubectl apply -f $istioPath/Components/samples/addons --context=$CTX_CLUSTER1
 
 #Check rollout status of the Kiali deployment - usually takes sometime
-kubectl rollout status deployment/kiali -n istio-system
+kubectl rollout status deployment/kiali -n istio-system --context=$CTX_CLUSTER1
 
 #Launch Kiali as background process
 istioctl dashboard kiali&
@@ -180,6 +199,11 @@ istioctl dashboard kiali&
 #Check Deployments within istio-system
 #Istio Ingress gateway with public or private IP
 kubectl get svc -n istio-system
+
+#Install Nginx server for Smoke Tests
+helm install smoke-tests-chart $istioPath/Examples/Smoke/smoke-tests-chart/ -n smoke \
+-f $istioPath/Examples/Smoke/smoke-tests-chart/values-smoke.yaml
+#helm uninstall smoke-tests-chart -n smoke
 
 #Install BookInfo app onto the cluster
 kubectl apply -f $istioPath/Examples/BookInfo/bookinfo.yaml -n primary --context=$CTX_CLUSTER1
@@ -389,12 +413,58 @@ kubectl exec "$FORTIO_POD" -c fortio -- /usr/bin/fortio curl -quiet http://httpb
 
 Service Mirroring or Shadowing
 =================================
+
+#Create Resource Group for AKS workloads
+#az group create -n $secondaryResourceGroup -l $location
+
+#Deploy Virtual Network
+az network vnet create -n $aksVnetName2 -g $secondaryResourceGroup --address-prefixes $aksVnetPrefix2
+aksVnetId2=$(az network vnet show -n $aksVnetName2 -g $secondaryResourceGroup --query="id" -o tsv)
+echo $aksVnetId2
+
+#Deploy AKS Subnet inside the Virtual Network
+az network vnet subnet create -n $aksSubnetName2 --vnet-name $aksVnetName2 -g $secondaryResourceGroup --address-prefixes $aksSubnetPrefix2
+aksSubnetId2=$(az network vnet subnet show -n $aksSubnetName2 --vnet-name $aksVnetName2 -g $secondaryResourceGroup --query="id" -o tsv)
+echo $aksSubnetId2
+
+#Deploy AKS Ingress Subnet inside the Virtual Network
+az network vnet subnet create -n $ingressSubnetName2 --vnet-name $aksVnetName2 -g $secondaryResourceGroup --address-prefixes $ingressSubnetPrefix2
+ingressSubnetId2=$(az network vnet subnet show -n $ingressSubnetName --vnet-name $aksVnetName -g $aksResourceGroup --query="id" -o tsv)
+echo $ingressSubnetId2
+
+#Assign Role to the Virtual Network
+az role assignment create --assignee $spAppId --role "Network Contributor" --scope $aksVnetId2
+
+#Deploy ACR
+#az acr create -n $secondaryAcrName -g $secondaryResourceGroup --sku STANDARD --admin-enabled false
+acrId2=$(az acr show -n $secondaryAcrName -g $secondaryResourceGroup --query="id" -o tsv)
+echo $acrId2
+
+#Assign Role to Service Principal for the ACR
+az role assignment create --assignee $spAppId --role "AcrPull" --scope $acrId2
+
+#Create Public AKS cluster
+az aks create --name $secondaryClusterName \
+--resource-group $secondaryResourceGroup \
+--kubernetes-version $version --location $location \
+--vnet-subnet-id "$aksSubnetId2" --enable-addons $addons \
+--service-cidr $aksServicePrefix2 --dns-service-ip $dnsServiceIP2 \
+--node-vm-size $sysNodeSize \
+--node-count $sysNodeCount --max-pods $maxSysPods \
+--service-principal $spAppId \
+--client-secret $spPassword \
+--network-plugin $networkPlugin --network-policy $networkPolicy \
+--nodepool-name $sysNodePoolName --vm-set-type $vmSetType \
+--generate-ssh-keys \
+--disable-rbac \
+--attach-acr $secondaryAcrName
+
 #Service Mirroring or Shadowing
 #Create Secondary Cluster - CLI or Portal
 export CTX_CLUSTER2=secondary
 
-#Connect to Public AKS Cluster with Primary Context
-az aks get-credentials -g $primaryResourceGroup -n $secondaryClusterName --context $CTX_CLUSTER2
+#Connect to Public AKS Cluster with Secondary Context
+az aks get-credentials -g $secondaryResourceGroup -n $secondaryClusterName --context $CTX_CLUSTER2
 
 kubectl config use-context $CTX_CLUSTER2
 
@@ -414,6 +484,13 @@ istioctl install --context=$CTX_CLUSTER2 --set profile=default -y
 #Another Publicly exposed LoadBalancer Service(L7) would be needed to access this Private IP
 istioctl install --context=$CTX_CLUSTER2 -f $istioPath/Components/values-secondary.yaml -y
 
+#Secret for TLS for all namespaces
+kubectl create secret tls secondary-tls-secret -n istio-system --cert="$baseFolderPath/Certs/star_internal_wkshpdev_com.pem" --key="$baseFolderPath/Certs/star.internal.wkshpdev.com.key"
+
+kubectl create ns smoke --context=$CTX_CLUSTER2
+kubectl label namespace smoke istio-injection=enabled --context=$CTX_CLUSTER2
+kubectl apply -f $istioPath/Examples/Networking/smoke-secondary-gateway.yaml -n smoke --context=$CTX_CLUSTER2
+
 #Inject Istio into Secondary namespace of the cluster 
 #This ensures sidecar container to be added for every deployment in this namespace
 kubectl label namespace secondary istio-injection=enabled --context=$CTX_CLUSTER2
@@ -422,6 +499,9 @@ kubectl label namespace secondary istio-injection=enabled --context=$CTX_CLUSTER
 #This primarily installs all dependencies for observability by Istio viz. Grafana, Kiali dashboard etc.
 kubectl apply -f $istioPath/Components/samples/addons --context=$CTX_CLUSTER2
 
+#Check rollout status of the Kiali deployment - usually takes sometime
+kubectl rollout status deployment/kiali -n istio-system --context=$CTX_CLUSTER2
+
 kubectl get svc istio-ingressgateway -n istio-system
 export INGRESS_HOST=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 export INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].port}')
@@ -429,6 +509,11 @@ export SECURE_INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressga
 
 export GATEWAY_URL2=$INGRESS_HOST:$INGRESS_PORT
 echo "$GATEWAY_URL2"
+
+#Install Nginx server for Smoke Tests
+helm install smoke-tests-chart $istioPath/Examples/Smoke/smoke-tests-chart/ -n smoke \
+-f $istioPath/Examples/Smoke/smoke-tests-chart/values-smoke.yaml
+#helm uninstall smoke-tests-chart -n smoke
 
 kubectl apply -f $istioPath/Examples/HelloWorld/helloworld-app-v2.yaml -n secondary --context=$CTX_CLUSTER2
 kubectl get po -n secondary --context=$CTX_CLUSTER2
