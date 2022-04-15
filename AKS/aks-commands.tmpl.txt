@@ -510,6 +510,11 @@ export SECURE_INGRESS_PORT=$(kubectl -n istio-system get service istio-ingressga
 export GATEWAY_URL2=$INGRESS_HOST:$INGRESS_PORT
 echo "$GATEWAY_URL2"
 
+#Need a Gateway to expose the Kiali service outside
+#Check Routing definitions
+#Replace <dns-name>
+kubectl apply -f $istioPath/Examples/Networking/kiali-secondary-gateway.yaml -n istio-system --context=$CTX_CLUSTER2
+
 #Install Nginx server for Smoke Tests
 helm install smoke-tests-chart $istioPath/Examples/Smoke/smoke-tests-chart/ -n smoke \
 -f $istioPath/Examples/Smoke/smoke-tests-chart/values-smoke.yaml
@@ -518,13 +523,13 @@ helm install smoke-tests-chart $istioPath/Examples/Smoke/smoke-tests-chart/ -n s
 kubectl apply -f $istioPath/Examples/HelloWorld/helloworld-app-v2.yaml -n secondary --context=$CTX_CLUSTER2
 kubectl get po -n secondary --context=$CTX_CLUSTER2
 
+#Destination Rule
+kubectl apply -f $istioPath/Examples/Networking/helloworld-v2-destination-rule.yaml -n secondary --context=$CTX_CLUSTER2
+
 #Need a Gateway to expose the service outside
 #Check Routing definitions
 #Replace <dns-name>
 kubectl apply -f $istioPath/Examples/Networking/secondary-gateway.yaml -n secondary --context=$CTX_CLUSTER2
-
-#Destination Rule
-kubectl apply -f $istioPath/Examples/Networking/helloworld-v2-destination-rule.yaml -n secondary --context=$CTX_CLUSTER2
 
 kubectl get svc -n secondary --context=$CTX_CLUSTER2
 kubectl describe svc -n secondary --context=$CTX_CLUSTER2
