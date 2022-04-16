@@ -42,7 +42,7 @@ spec:
         prefix: /hello
     route:
     - destination:
-        host: helloworld
+        host: helloworld.secondary.svc.cluster.local
         subset: v2
         port:
           number: 5000      

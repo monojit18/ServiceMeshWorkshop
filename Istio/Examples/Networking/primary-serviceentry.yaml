@@ -8,6 +8,6 @@ spec:
   ports:
   - number: 443
     name: https
-    protocol: TLS
+    protocol: HTTPS
   location: MESH_EXTERNAL
   resolution: DNS

@@ -32,13 +32,13 @@ spec:
   - api-primary.internal.wkshpdev.com
   gateways:
   - primary-gateway  
-  http:
+  http:  
   #PodInfo service
   - match:
     - uri:
         prefix: /podinfo
     rewrite:
-      uri: /
+      uri: /    
     route:
     - destination:
         host: podinfo   
@@ -55,17 +55,17 @@ spec:
     #       number: 9898 
     #   weight: 50
   #Hello World service
-  - match:  
+  - match:    
     - uri:
         prefix: /hello
     route:
     - destination:
         host: helloworld
   #UNCOMMENT: Introduce versioning        
-        subset: v1
+        # subset: v1
         port:
           number: 5000   
-      weight: 100
+      weight: 0
 
 #UNCOMMENT: Test Traffic Shifting
     # - destination:
@@ -73,16 +73,16 @@ spec:
     #     subset: v2
     #     port:
     #       number: 5000   
-    #   weight: 0
+    #   weight: 50
 
 #UNCOMMENT: Test Traffic Mirroring Or Shadowing
-    mirror:
-      host: api-secondary.wkshpdev.com  
-      subset: v2    
-      port:
-        number: 443
-    mirrorPercentage:
-      value: 100
+    # mirror:
+    #   host: api-secondary.wkshpdev.com
+    #   # subset: v2    
+    #   port:
+    #     number: 443
+    # mirrorPercentage:
+    #   value: 100
 
 #UNCOMMENT: Test Circuit Breaking
   - match:
