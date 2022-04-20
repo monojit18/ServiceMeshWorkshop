@@ -44,7 +44,7 @@ spec:
       nodeSelector:
         kubernetes.io/arch: amd64
         kubernetes.io/os: linux
-        agentpool: aksapipool
+        agentpool: akssyspool
       containers:
         - name: bookstore
           image: openservicemesh/bookstore:v0.11.1
