@@ -28,7 +28,7 @@ metadata:
   name: secondary-virtual-service
 spec:
   hosts:
-  - api-secondary.internal.wkshpdev.com
+  - api-secondary.internal.<dns-name>
   
   #IMPORTANT: Shadow Suffix - All Mirrored service is sent from primary cluster
   # with a Suffix called - Shadow

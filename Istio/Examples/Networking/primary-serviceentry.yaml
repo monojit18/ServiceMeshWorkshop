@@ -4,10 +4,10 @@ metadata:
   name: primary-serviceentry  
 spec:
   hosts:
-  - api-secondary.wkshpdev.com
+  - api-secondary.<dns-name>
   ports:
   - number: 443
     name: https
-    protocol: HTTPS
+    protocol: TLS
   location: MESH_EXTERNAL
   resolution: DNS

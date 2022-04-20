@@ -19,7 +19,7 @@ spec:
       credentialName: primary-tls-secret
     hosts:
 #Ingress Gateway DNS host of Primary Cluster
-    - "smoke-mesh.internal.wkshpdev.com"
+    - "smoke-mesh.internal.<dns-name>"
 
 ---
 apiVersion: networking.istio.io/v1alpha3
@@ -29,7 +29,7 @@ metadata:
 spec:
   hosts:
 #Ingress Gateway DNS host of Primary Cluster
-  - "smoke-mesh.internal.wkshpdev.com"
+  - "smoke-mesh.internal.<dns-name>"
   gateways:
   - smoke-gateway
   http:  

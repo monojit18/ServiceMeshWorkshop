@@ -1,0 +1,14 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: helloworld-tls-dest-rule
+spec:
+  host: api-secondary.<dns-name>
+  trafficPolicy:
+    loadBalancer:
+      simple: ROUND_ROBIN
+    tls:
+      mode: SIMPLE
+      credentialName: primary-tls-secret
+            
+  

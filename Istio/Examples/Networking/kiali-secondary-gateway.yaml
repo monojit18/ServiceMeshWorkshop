@@ -19,7 +19,7 @@ spec:
       credentialName: secondary-tls-secret
     hosts:
 #Ingress Gateway DNS host of Primary Cluster
-    - "kiali-secondary.internal.wkshpdev.com"
+    - "kiali-secondary.internal.<dns-name>"
 ---
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
@@ -28,7 +28,7 @@ metadata:
 spec:
   hosts:
 #Ingress Gateway DNS host of Primary Cluster
-  - "kiali-secondary.internal.wkshpdev.com"  
+  - "kiali-secondary.internal.<dns-name>"  
   gateways:
   - kiali-gateway
   http:                  
