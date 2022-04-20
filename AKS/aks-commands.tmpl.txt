@@ -544,9 +544,16 @@ kubectl config use-context $CTX_CLUSTER1
 #Check Routing definitions
 kubectl apply -f $istioPath/Examples/Networking/primary-gateway.yaml -n primary --context=$CTX_CLUSTER1
 
+#Mirroring within same cluster
+kubectl apply -f $istioPath/Examples/HelloWorld/helloworld-app-v2.yaml -n primary --context=$CTX_CLUSTER1
+kubectl get po -n primary --context=$CTX_CLUSTER1
+
 #Deploy components so that Mirroring can work
 #Replace <dns-name>
 kubectl apply -f $istioPath/Examples/Networking/primary-serviceentry.yaml -n primary --context=$CTX_CLUSTER1
+
+#TLS Destination Rule
+kubectl apply -f $istioPath/Examples/Networking/helloworld-tls-destination-rule.yaml -n primary --context=$CTX_CLUSTER1
 
 #Destination Rule
 #Replace <dns-name>
