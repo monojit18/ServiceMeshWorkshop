@@ -1,0 +1,17 @@
+controller:
+  replicaCount: 2
+  # podAnnotations:
+  #   prometheus.io/scrape: "true"
+  #   prometheus.io/port: "10254"
+  metrics:
+    enabled: "true"
+  service:
+    annotations:
+      service.beta.kubernetes.io/azure-load-balancer-internal: "true"  
+      service.beta.kubernetes.io/azure-load-balancer-internal-subnet: "primary-ingress-subnet"
+    loadBalancerIP: 23.0.1.100
+
+
+
+
+

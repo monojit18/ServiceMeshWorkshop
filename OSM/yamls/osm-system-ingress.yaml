@@ -1,0 +1,41 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: osm-system-ingress
+  namespace: osm-system
+  annotations:
+    kubernetes.io/ingress.class: nginx    
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  tls:
+  - hosts:
+    - "*.internal.<dns-name>"
+    secretName: osm-tls-secret
+  rules:
+  - host: grafana.internal.<dns-name>
+    http:
+      paths:      
+      - path: /?(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: osm-grafana
+            port:
+              number: 3000
+                            
+---
+kind: IngressBackend
+apiVersion: policy.openservicemesh.io/v1alpha1
+metadata:
+  name: osm-system-backend
+  namespace: osm-system
+spec:
+  backends:  
+  - name: osm-grafana
+    port:
+      number: 3000
+      protocol: http  
+  sources:
+  - kind: Service
+    namespace: osm-nginx-ingess-ns
+    name: osm-nginx-ingess-ingress-nginx-controller
