@@ -1,4 +1,5 @@
 !.gitignore
+**/.DS_Store
 .vscode
 **/aks-commands.txt
 **/linkerd-commnads.txt
