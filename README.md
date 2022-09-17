@@ -124,7 +124,7 @@
         clusterName="primary-mesh-cluster"
         version="1.20.9"
         aksResourceGroup="primary-workshop-rg"
-        acrName="srvmeshacr"
+        acrName="<acr-Name>"
         spDisplayName="http://service-mesh-aks-cluster-sp"
         aksVnetName="primary-cluster-vnet"
         aksVnetPrefix=""
@@ -1141,7 +1141,7 @@
       clusterName="aks-train-mesh-cluster"
       version=""
       aksResourceGroup="aks-train-rg"
-      acrName="srvmeshacr"
+      acrName="<acr-Name>"
       osmFolderPath="<osm-folder-path-in-repo>"
       ```
     

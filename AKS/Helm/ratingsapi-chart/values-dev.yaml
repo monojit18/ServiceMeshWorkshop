@@ -14,7 +14,7 @@ deployment:
     agentpool: akssyspool
   containers:
   - name: ratingsapi-app
-    image: srvmeshacr.azurecr.io/ratings-api:v1.0.0
+    image: <acr-Name>.azurecr.io/ratings-api:v1.0.0
     imagePullPolicy: IfNotPresent
     readinessPort: 3000
     readinessPath: /healthz

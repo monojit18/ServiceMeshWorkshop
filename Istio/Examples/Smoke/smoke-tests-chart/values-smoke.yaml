@@ -14,7 +14,7 @@ deployment:
     agentpool: akssyspool
   containers:
   - name: nginx-app
-    image: srvmeshacr.azurecr.io/nginx:alpine
+    image: <acr-Name>.azurecr.io/nginx:alpine
     imagePullPolicy: IfNotPresent
     memoryRequest: "250Mi"
     cpuRequest: "100m"
