@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata:
   name: apimesh-env
 data:
-  config.service.endpoint: "https://apim-workshop-loadtest.management.azure-api.net/subscriptions/6bdcc705-8db6-4029-953a-e749070e6db6/resourceGroups/apim-workshop-rg/providers/Microsoft.ApiManagement/service/apim-workshop-loadtest?api-version=2021-01-01-preview"
+  config.service.endpoint: "https://apim-workshop-loadtest.management.azure-api.net/subscriptions/<subscription-id>/resourceGroups/apim-workshop-rg/providers/Microsoft.ApiManagement/service/apim-workshop-loadtest?api-version=2021-01-01-preview"
 ---
 apiVersion: apps/v1
 kind: Deployment
